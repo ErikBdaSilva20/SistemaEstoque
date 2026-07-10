@@ -50,9 +50,18 @@ export async function previewRequest<R>(method: string, path: string, body?: unk
 
 const PREVIEW_USER = { id: "preview-user", name: "Usuário Preview", email: "preview@masia.cloud" };
 
+/** Debug only: `?previewRole=rep|manager|admin` na URL do preview simula o papel logado. */
+function previewRole(): "admin" | "manager" | "rep" {
+  const value =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("previewRole")
+      : null;
+  return value === "rep" || value === "manager" ? value : "admin";
+}
+
 export async function previewAuthRequest<R>(path: string, _body?: unknown): Promise<R> {
   if (path === "/get-session") {
-    return { user: PREVIEW_USER, role: "admin" } as unknown as R;
+    return { user: PREVIEW_USER, role: previewRole() } as unknown as R;
   }
   if (path === "/sign-in/email" || path === "/sign-up/email") {
     return { user: PREVIEW_USER } as unknown as R;

@@ -69,7 +69,6 @@ export function useCountSessions(status?: CountSession["status"]) {
       }
 
       return sessions
-        .filter((s) => !status || s.status === status)
         .map((s) => ({
           ...s,
           locationName: s.location_id ? (locationById.get(s.location_id)?.name ?? null) : null,
@@ -79,6 +78,11 @@ export function useCountSessions(status?: CountSession["status"]) {
         }))
         .sort((a, b) => b.opened_at.localeCompare(a.opened_at));
     },
+    // Filter client-side via `select`, not inside `queryFn` -- `queryKey` doesn't
+    // vary by `status`, so filtering in `queryFn` would cache whichever status
+    // filtered result ran first and serve it (unfiltered by the current status)
+    // to every other status the hook is called with.
+    select: (rows) => (status ? rows.filter((r) => r.status === status) : rows),
   });
 }
 

@@ -7,9 +7,11 @@ import {
   Package,
   Truck,
   ShoppingCart,
+  ShoppingBag,
   ArrowLeftRight,
   BarChart3,
   ClipboardList,
+  CalendarClock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -57,18 +59,22 @@ export default function AppShell() {
   const navigate = useNavigate();
 
   const mainNavItems: NavItemConfig[] = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/products", icon: Package, label: "Produtos" },
+    { to: "/quick-sale", icon: ShoppingBag, label: "Venda Rápida" },
     { to: "/stock", icon: ArrowLeftRight, label: "Estoque" },
-    { to: "/purchases", icon: ShoppingCart, label: "Compras" },
     { to: "/counts", icon: ClipboardList, label: "Contagem" },
-    { to: "/reports", icon: BarChart3, label: "Relatórios" },
+    { to: "/expiring", icon: CalendarClock, label: "Vencidos" },
   ];
 
-  const managementNavItems: NavItemConfig[] = [
-    ...(canManage ? [{ to: "/suppliers", icon: Truck, label: "Fornecedores" }] : []),
-    { to: "/settings/team", icon: SettingsIcon, label: "Configurações" },
-  ];
+  const managementNavItems: NavItemConfig[] = canManage
+    ? [
+        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+        { to: "/purchases", icon: ShoppingCart, label: "Compras" },
+        { to: "/reports", icon: BarChart3, label: "Relatórios" },
+        { to: "/suppliers", icon: Truck, label: "Fornecedores" },
+        { to: "/settings/team", icon: SettingsIcon, label: "Configurações" },
+      ]
+    : [];
 
   const isRouteActive = (to: string) =>
     location.pathname === to ||

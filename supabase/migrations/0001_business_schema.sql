@@ -112,7 +112,6 @@ create table if not exists products (
   dimensions            jsonb,
   technical_spec        text,
   internal_notes        text,
-  photo_url             text,
   supplier_id           uuid references suppliers(id) on delete set null,
   track_batches         boolean not null default false,
   track_locations       boolean not null default false,

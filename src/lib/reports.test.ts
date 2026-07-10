@@ -28,7 +28,6 @@ function makeProduct(overrides: Partial<Product> & Pick<Product, "id">): Product
     dimensions: null,
     technical_spec: null,
     internal_notes: null,
-    photo_url: null,
     supplier_id: null,
     track_batches: false,
     track_locations: false,

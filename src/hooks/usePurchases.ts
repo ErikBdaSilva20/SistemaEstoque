@@ -72,7 +72,6 @@ export function usePurchaseOrders(status?: PurchaseOrder["status"]) {
       const supplierById = new Map(suppliers.map((s) => [s.id, s]));
 
       return orders
-        .filter((o) => !status || o.status === status)
         .map((o) => ({
           ...o,
           supplier: supplierById.get(o.supplier_id) ?? null,
@@ -80,6 +79,9 @@ export function usePurchaseOrders(status?: PurchaseOrder["status"]) {
         }))
         .sort((a, b) => b.created_at.localeCompare(a.created_at));
     },
+    // Filter client-side via `select`, not inside `queryFn` -- see useCountSessions.ts
+    // for why filtering inside queryFn with a status-agnostic queryKey is a bug.
+    select: (rows) => (status ? rows.filter((r) => r.status === status) : rows),
   });
 }
 

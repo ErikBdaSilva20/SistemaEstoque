@@ -11,6 +11,7 @@
     { "id": "dashboard", "route": "/dashboard", "title": "Dashboard", "file": "src/pages/Dashboard" },
     { "id": "products", "route": "/products", "title": "Produtos", "file": "src/pages/Products" },
     { "id": "stock", "route": "/stock", "title": "Estoque", "file": "src/pages/Stock" },
+    { "id": "quick-sale", "route": "/quick-sale", "title": "Venda Rápida", "file": "src/pages/QuickSale" },
     { "id": "purchases", "route": "/purchases", "title": "Compras", "file": "src/pages/Purchases" },
     { "id": "counts", "route": "/counts", "title": "Contagem", "file": "src/pages/Counts" },
     { "id": "reports", "route": "/reports", "title": "Relatórios", "file": "src/pages/Reports" },

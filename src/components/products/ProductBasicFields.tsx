@@ -16,10 +16,17 @@ export interface ProductBasicFieldsProps {
   control: Control<ProductFormInput, unknown, ProductFormValues>;
   suppliers: Supplier[];
   isEdit: boolean;
+  /** Esconde o campo de custo (dado financeiro/gerencial) de quem não é admin/manager. */
+  showCost?: boolean;
 }
 
 /** Identificação, categorização, preços e rastreabilidade — a metade "sempre visível" do form de produto. */
-export function ProductBasicFields({ control, suppliers, isEdit }: ProductBasicFieldsProps) {
+export function ProductBasicFields({
+  control,
+  suppliers,
+  isEdit,
+  showCost = true,
+}: ProductBasicFieldsProps) {
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -147,26 +154,28 @@ export function ProductBasicFields({ control, suppliers, isEdit }: ProductBasicF
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <FormField
-          control={control}
-          name="cost"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Custo (R$)</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...field}
-                  value={field.value as number | string | undefined}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <div className={showCost ? "grid grid-cols-3 gap-4" : "grid grid-cols-2 gap-4"}>
+        {showCost && (
+          <FormField
+            control={control}
+            name="cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Custo (R$)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...field}
+                    value={field.value as number | string | undefined}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={control}
           name="price"

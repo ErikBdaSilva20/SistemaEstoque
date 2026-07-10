@@ -15,7 +15,6 @@ export const productFormSchema = z.object({
   track_batches: z.boolean(),
   track_locations: z.boolean(),
   // Campos ricos (todos opcionais)
-  photo_url: z.string().optional().or(z.literal("")).nullable(),
   brand: z.string().trim().max(100).optional().or(z.literal("")),
   model: z.string().trim().max(100).optional().or(z.literal("")),
   ncm: z.string().trim().max(20).optional().or(z.literal("")),

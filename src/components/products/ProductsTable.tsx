@@ -210,67 +210,65 @@ export function ProductsTable({
         );
       },
     },
-    ...(canManage
-      ? [
-          {
-            key: "actions",
-            header: "",
-            headerClassName: "w-12",
-            cell: (p: Product) => (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEdit(p)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar
-                  </DropdownMenuItem>
-                  {p.active ? (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        toggleActive.mutate(
-                          { id: p.id, isActive: false },
-                          { onSuccess: () => toastSuccess("Produto desativado.") },
-                        )
-                      }
-                    >
-                      <PowerOff className="mr-2 h-4 w-4" />
-                      Desativar
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        toggleActive.mutate(
-                          { id: p.id, isActive: true },
-                          { onSuccess: () => toastSuccess("Produto reativado.") },
-                        )
-                      }
-                    >
-                      <Power className="mr-2 h-4 w-4" />
-                      Reativar
-                    </DropdownMenuItem>
-                  )}
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeleteTarget(p)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Remover
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ),
-          },
-        ]
-      : []),
+    {
+      key: "actions",
+      header: "",
+      headerClassName: "w-12",
+      cell: (p: Product) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canManage && (
+              <DropdownMenuItem onClick={() => handleEdit(p)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+            )}
+            {p.active ? (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleActive.mutate(
+                    { id: p.id, isActive: false },
+                    { onSuccess: () => toastSuccess("Produto desativado.") },
+                  )
+                }
+              >
+                <PowerOff className="mr-2 h-4 w-4" />
+                Desativar
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleActive.mutate(
+                    { id: p.id, isActive: true },
+                    { onSuccess: () => toastSuccess("Produto reativado.") },
+                  )
+                }
+              >
+                <Power className="mr-2 h-4 w-4" />
+                Reativar
+              </DropdownMenuItem>
+            )}
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteTarget(p)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remover
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
   ];
 
   return (
@@ -303,7 +301,7 @@ export function ProductsTable({
                 barcode: p.barcode ?? "",
                 categoria: p.category ?? "",
                 unidade: p.unit,
-                custo: Number(p.cost_price),
+                ...(canManage ? { custo: Number(p.cost_price) } : {}),
                 preco: Number(p.sale_price),
                 estoque_atual: Number(p.current_stock),
                 estoque_minimo: Number(p.min_stock),
@@ -327,14 +325,12 @@ export function ProductsTable({
           {selected.size > 0 ? `Etiquetas (${selected.size})` : "Etiquetas"}
         </Button>
         {canManage && (
-          <>
-            <Button variant="outline" onClick={() => setImportOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Importar
-            </Button>
-            <Button onClick={handleNew}>Novo produto</Button>
-          </>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Importar
+          </Button>
         )}
+        <Button onClick={handleNew}>Novo produto</Button>
       </div>
 
       <DataTable

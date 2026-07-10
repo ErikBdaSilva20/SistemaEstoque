@@ -7,17 +7,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useExpiringBatches } from "@/hooks/useBatches";
 import { formatDate, formatNumber } from "@/lib/formatters";
 
-export function ExpiringBatchesCard() {
-  const { data: batches = [], isLoading } = useExpiringBatches(30);
+export function ExpiringBatchesCard({
+  withinDays = 30,
+  limit = 5,
+  viewAllHref = "/reports",
+  hideWhenEmpty = true,
+}: {
+  withinDays?: number;
+  limit?: number;
+  viewAllHref?: string | null;
+  /** Quando false, mostra uma mensagem de "nada vencendo" em vez de sumir — use fora do Dashboard, onde o card é o único conteúdo da tela. */
+  hideWhenEmpty?: boolean;
+} = {}) {
+  const { data: batches = [], isLoading } = useExpiringBatches(withinDays);
 
-  if (!isLoading && batches.length === 0) return null;
+  if (!isLoading && batches.length === 0 && hideWhenEmpty) return null;
 
   return (
     <Card className="rounded-2xl border-warning/30 bg-warning/5 shadow-elevation-1">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
           <CalendarClock className="h-4 w-4 text-warning" />
-          <CardTitle className="text-base">Lotes próximos do vencimento (30d)</CardTitle>
+          <CardTitle className="text-base">Lotes próximos do vencimento ({withinDays}d)</CardTitle>
         </div>
         <Badge variant="secondary" className="bg-warning/15 text-warning">
           {batches.length}
@@ -26,9 +37,13 @@ export function ExpiringBatchesCard() {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-24" />
+        ) : batches.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum lote vencendo nesse período.
+          </p>
         ) : (
           <div className="divide-y divide-border">
-            {batches.slice(0, 5).map((b) => {
+            {batches.slice(0, limit).map((b) => {
               const expired = (b.daysToExpire ?? 0) < 0;
               return (
                 <Link
@@ -60,10 +75,10 @@ export function ExpiringBatchesCard() {
                 </Link>
               );
             })}
-            {batches.length > 5 && (
+            {viewAllHref && batches.length > limit && (
               <div className="pt-2 text-right">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to="/reports">
+                  <Link to={viewAllHref}>
                     Ver todos
                     <ArrowRight className="ml-1 h-3 w-3" />
                   </Link>

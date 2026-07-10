@@ -9,6 +9,7 @@ import Auth from "@/pages/Auth";
 import AppShell from "@/pages/AppShell";
 import Dashboard from "@/pages/Dashboard";
 import Stock from "@/pages/Stock";
+import QuickSale from "@/pages/QuickSale";
 import Reports from "@/pages/Reports";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -18,6 +19,7 @@ import NewPurchase from "@/pages/NewPurchase";
 import PurchaseDetail from "@/pages/PurchaseDetail";
 import Counts from "@/pages/Counts";
 import CountDetail from "@/pages/CountDetail";
+import Expiring from "@/pages/Expiring";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
 import SettingsIndex from "@/pages/settings/SettingsIndex";
 import SettingsTeam from "@/pages/settings/SettingsTeam";
@@ -70,16 +72,17 @@ function ProtectedRoute({ allowedRoles }: { allowedRoles?: Array<"admin" | "mana
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/auth?tab=login" replace />;
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/quick-sale" replace />;
   }
 
   return <Outlet />;
 }
 
 function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, isManager } = useAuth();
   if (isLoading) return null;
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/auth?tab=login"} replace />;
+  if (!isAuthenticated) return <Navigate to="/auth?tab=login" replace />;
+  return <Navigate to={isAdmin || isManager ? "/dashboard" : "/quick-sale"} replace />;
 }
 
 export default function App() {
@@ -93,21 +96,23 @@ export default function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/stock" element={<Stock />} />
-                <Route path="/purchases" element={<Purchases />} />
-                <Route path="/purchases/new" element={<NewPurchase />} />
-                <Route path="/purchases/:id" element={<PurchaseDetail />} />
+                <Route path="/quick-sale" element={<QuickSale />} />
                 <Route path="/counts" element={<Counts />} />
                 <Route path="/counts/:id" element={<CountDetail />} />
-                <Route path="/reports" element={<Reports />} />
+                <Route path="/expiring" element={<Expiring />} />
               </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
               <Route element={<AppShell />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/purchases" element={<Purchases />} />
+                <Route path="/purchases/new" element={<NewPurchase />} />
+                <Route path="/purchases/:id" element={<PurchaseDetail />} />
+                <Route path="/reports" element={<Reports />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route
                   path="/settings"

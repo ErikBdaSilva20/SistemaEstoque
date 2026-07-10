@@ -10,7 +10,7 @@ export const signupSchema = z
     email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
     password: z
       .string()
-      .min(10, "Senha deve ter no mínimo 10 caracteres")
+      .min(6, "Senha deve ter no mínimo 6 caracteres")
       .max(128, "Senha muito longa")
       .refine((p) => /[a-zA-Z]/.test(p) && /\d/.test(p), {
         message: "Senha deve conter ao menos uma letra e um número",

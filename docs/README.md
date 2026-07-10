@@ -309,7 +309,10 @@ revisado.
 
 ### Bloco D — Fluxo de Compra 🔴
 
-- [x] 008 · Movimentações de estoque
+- [x] 008 · Movimentações de estoque — inclui leitura de código de barras (câmera, em
+      `ScanMovementDialog`) e tela de Venda Rápida (`/quick-sale`, leitor USB/Bluetooth em modo
+      teclado) pra baixa em lote no balcão; ambos cadastram produto novo na hora se o código
+      escaneado não bater com nada
 - [x] 009/010 · **Supersedidos** — PR e RFQ fundidos em Pedido de Compra único (ver §3)
 - [x] 011 · Pedido de Compra — form, lista, detalhe, impressão, aprovação por valor
       configurável (direto no detalhe, sem página separada)
@@ -339,6 +342,9 @@ revisado.
       responsabilidades diferentes misturadas, não só por linha). Já avaliados/refatorados:
       `ProductFormDialog.tsx`, `PurchaseOrderDetail.tsx`. Ainda não avaliados:
       `MovementFormDialog.tsx` (640L), `AnimatedAuthForm.tsx` (512L)
+- [x] 021 · Separação de acesso funcionário (rep) vs gerente (admin/manager) — implementado
+      (rotas, nav, produtos, tela `/expiring`), ver `stories/v1/021-papeis-rep-gerente.md`.
+      Validação manual com contas reais `rep`/`admin` ainda pendente (sem credenciais neste ambiente)
 - [ ] **Portão F:** `masi.template.json` pronto, template publicável; screenshots pendentes;
       `THIRD_PARTY.md` existe, revisão final pendente
 

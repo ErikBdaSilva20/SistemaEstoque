@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormDialog } from "@/components/forms/FormDialog";
 import { useProductMutations, type Product } from "@/hooks/useProducts";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { useAuth } from "@/hooks/useAuth";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { ProductBasicFields } from "./ProductBasicFields";
 import { ProductAdvancedFields } from "./ProductAdvancedFields";
@@ -17,6 +18,10 @@ export interface ProductFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product?: Product | null;
+  /** Prefills the barcode field when creating a new product (e.g. from a scan that found no match). Ignored when editing. */
+  initialBarcode?: string;
+  /** Called with the created product right after a successful create (not on edit). */
+  onCreated?: (product: Product) => void;
 }
 
 const emptyDefaults: ProductFormInput = {
@@ -33,7 +38,6 @@ const emptyDefaults: ProductFormInput = {
   initial_stock: 0,
   track_batches: false,
   track_locations: false,
-  photo_url: null,
   brand: "",
   model: "",
   ncm: "",
@@ -47,10 +51,18 @@ const emptyDefaults: ProductFormInput = {
   internal_notes: "",
 };
 
-export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDialogProps) {
+export function ProductFormDialog({
+  open,
+  onOpenChange,
+  product,
+  initialBarcode,
+  onCreated,
+}: ProductFormDialogProps) {
   const isEdit = !!product;
   const { create, update } = useProductMutations();
   const { data: suppliers = [] } = useSuppliers();
+  const { isAdmin, isManager } = useAuth();
+  const canManage = isAdmin || isManager;
 
   const form = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -81,7 +93,6 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
         initial_stock: 0,
         track_batches: product.track_batches,
         track_locations: product.track_locations,
-        photo_url: product.photo_url ?? null,
         brand: product.brand ?? "",
         model: product.model ?? "",
         ncm: product.ncm ?? "",
@@ -95,9 +106,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
         internal_notes: product.internal_notes ?? "",
       });
     } else {
-      form.reset(emptyDefaults);
+      form.reset({ ...emptyDefaults, barcode: initialBarcode ?? "" });
     }
-  }, [open, product, form]);
+  }, [open, product, initialBarcode, form]);
 
   const onSubmit = async (values: ProductFormValues) => {
     const hasDims = values.length_cm != null || values.width_cm != null || values.height_cm != null;
@@ -122,7 +133,6 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
       supplier_id: values.supplier_id || null,
       track_batches: values.track_batches,
       track_locations: values.track_locations,
-      photo_url: values.photo_url || null,
       brand: values.brand?.trim() || null,
       model: values.model?.trim() || null,
       ncm: values.ncm?.trim() || null,
@@ -144,6 +154,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           current_stock: values.initial_stock ?? 0,
         });
         toastSuccess(`Produto "${created.name}" criado.`);
+        onCreated?.(created);
       }
       onOpenChange(false);
     } catch (e) {
@@ -167,7 +178,12 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
       submitLabel={isEdit ? "Salvar" : "Criar produto"}
       contentClassName="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
     >
-      <ProductBasicFields control={form.control} suppliers={suppliers} isEdit={isEdit} />
+      <ProductBasicFields
+        control={form.control}
+        suppliers={suppliers}
+        isEdit={isEdit}
+        showCost={canManage}
+      />
       <ProductAdvancedFields control={form.control} />
     </FormDialog>
   );

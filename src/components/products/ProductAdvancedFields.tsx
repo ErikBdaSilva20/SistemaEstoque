@@ -1,5 +1,4 @@
 import type { Control } from "react-hook-form";
-import { useWatch } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProductPhotoUpload } from "./ProductPhotoUpload";
 import type { ProductFormInput, ProductFormValues } from "./productFormSchema";
 
 export interface ProductAdvancedFieldsProps {
@@ -20,8 +18,6 @@ export interface ProductAdvancedFieldsProps {
 
 /** Bloco recolhível de detalhes técnicos/fiscais/logísticos — usado só quando o cadastro precisa deles. */
 export function ProductAdvancedFields({ control }: ProductAdvancedFieldsProps) {
-  const sku = useWatch({ control, name: "sku" });
-
   return (
     <details className="group rounded-md border border-border bg-bg-base/40 p-3">
       <summary className="cursor-pointer text-sm font-medium">
@@ -32,24 +28,6 @@ export function ProductAdvancedFields({ control }: ProductAdvancedFieldsProps) {
       </summary>
 
       <div className="mt-4 space-y-4">
-        <FormField
-          control={control}
-          name="photo_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Foto do produto</FormLabel>
-              <FormControl>
-                <ProductPhotoUpload
-                  value={field.value as string | null}
-                  onChange={(v) => field.onChange(v)}
-                  productSku={sku || undefined}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={control}

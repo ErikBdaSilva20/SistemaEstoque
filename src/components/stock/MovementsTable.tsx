@@ -4,6 +4,7 @@ import {
   ArrowUpCircle,
   ArrowLeftRight,
   RefreshCcw,
+  ScanLine,
   Wrench,
   Download,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import { useMovements, type StockMovement } from "@/hooks/useMovements";
 import { useMovementReasons } from "@/hooks/useMovementReasons";
 import { formatNumber, formatDateTime } from "@/lib/formatters";
 import { MovementFormDialog } from "./MovementFormDialog";
+import { ScanMovementDialog } from "./ScanMovementDialog";
 
 const TYPE_META = {
   in: {
@@ -68,6 +70,7 @@ const ORIGIN_LABELS: Record<StockMovement["origin"], string> = {
 export function MovementsTable() {
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const { data: movements = [], isLoading } = useMovements({
     origin: originFilter === "all" ? undefined : (originFilter as StockMovement["origin"]),
@@ -115,6 +118,10 @@ export function MovementsTable() {
           >
             <Download className="mr-2 h-4 w-4" />
             Exportar
+          </Button>
+          <Button variant="outline" onClick={() => setScanOpen(true)}>
+            <ScanLine className="mr-2 h-4 w-4" />
+            Escanear
           </Button>
           <Button onClick={() => setFormOpen(true)}>Registrar movimentação</Button>
         </div>
@@ -192,6 +199,7 @@ export function MovementsTable() {
       </div>
 
       <MovementFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <ScanMovementDialog open={scanOpen} onOpenChange={setScanOpen} />
     </>
   );
 }

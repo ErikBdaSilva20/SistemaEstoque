@@ -133,7 +133,6 @@ export interface Database {
           dimensions: Json | null;
           technical_spec: string | null;
           internal_notes: string | null;
-          photo_url: string | null;
           supplier_id: string | null;
           track_batches: boolean;
           track_locations: boolean;
@@ -162,7 +161,6 @@ export interface Database {
           dimensions?: Json | null;
           technical_spec?: string | null;
           internal_notes?: string | null;
-          photo_url?: string | null;
           supplier_id?: string | null;
           track_batches?: boolean;
           track_locations?: boolean;
