@@ -1,3 +1,7 @@
+> **SUPERSEDIDO.** PR e RFQ (story 010) foram fundidos num único "Pedido de Compra" (story 011) —
+> ver `docs/README.md` §3/§5 (Bloco D). Sem conversão automática PR→RFQ→PO nem tabela própria de
+> PR; mantido aqui só como histórico de decisão.
+
 # Story 009 — Pedidos de Solicitação (PR)
 
 **Prioridade:** P1 · **Escopo:** v1 · **Depende de:** 006

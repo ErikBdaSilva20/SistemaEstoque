@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { usePurchaseMutations, type PurchaseOrderDetail } from "@/hooks/usePurchases";
 import { formatNumber } from "@/lib/formatters";
-import { mapGatewayError } from "@/lib/errors";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 interface ReceiveItemsDialogProps {
   open: boolean;
@@ -37,16 +36,23 @@ export function ReceiveItemsDialog({ open, onOpenChange, order }: ReceiveItemsDi
   }, [open, order.items]);
 
   const handleSubmit = async () => {
+    for (const it of order.items) {
+      const pending = Number(it.quantity_ordered) - Number(it.quantity_received);
+      const qty = Number(quantities[it.id]) || 0;
+      if (qty > pending) {
+        toastError(
+          `Quantidade a receber (${qty}) excede o pendente (${pending}) para ${it.product_name}.`,
+        );
+        return;
+      }
+    }
+
     const toReceive = order.items
-      .map((it) => {
-        const raw = quantities[it.id] ?? "0";
-        const qty = Number(raw) || 0;
-        return { itemId: it.id, quantityToReceive: qty };
-      })
+      .map((it) => ({ itemId: it.id, quantityToReceive: Number(quantities[it.id]) || 0 }))
       .filter((x) => x.quantityToReceive > 0);
 
     if (toReceive.length === 0) {
-      toast.error("Informe ao menos uma quantidade a receber.");
+      toastError("Informe ao menos uma quantidade a receber.");
       return;
     }
 
@@ -55,10 +61,10 @@ export function ReceiveItemsDialog({ open, onOpenChange, order }: ReceiveItemsDi
         orderId: order.id,
         items: toReceive,
       });
-      toast.success("Recebimento registrado.");
+      toastSuccess("Recebimento registrado.");
       onOpenChange(false);
     } catch (e) {
-      toast.error(mapGatewayError(e));
+      toastError(e);
     }
   };
 

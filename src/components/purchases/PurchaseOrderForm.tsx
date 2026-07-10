@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import {
@@ -37,7 +36,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { usePurchaseMutations } from "@/hooks/usePurchases";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatNumber } from "@/lib/formatters";
-import { mapGatewayError } from "@/lib/errors";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 const itemSchema = z.object({
   product_id: z.string().uuid("Selecione um produto"),
@@ -98,10 +97,10 @@ export function PurchaseOrderForm() {
           unitCost: it.unitCost,
         })),
       });
-      toast.success(`Pedido ${order.code} criado.`);
+      toastSuccess(`Pedido ${order.code} criado.`);
       navigate(`/purchases/${order.id}`);
     } catch (e) {
-      toast.error(mapGatewayError(e));
+      toastError(e);
     }
   };
 

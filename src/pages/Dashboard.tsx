@@ -267,10 +267,8 @@ function StatusPill({ status }: { status: PurchaseOrder["status"] }) {
     draft: { label: "Rascunho", cls: "bg-muted text-muted-foreground" },
     sent: { label: "Enviado", cls: "bg-accent-primary/15 text-accent-primary" },
     pending_approval: { label: "Pendente aprovação", cls: "bg-warning/15 text-warning" },
-    approved: { label: "Aprovado", cls: "bg-accent-success/15 text-accent-success" },
     rejected: { label: "Rejeitado", cls: "bg-destructive/15 text-destructive" },
     cancelled: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
-    delivered_pending_check: { label: "Entregue (conferir)", cls: "bg-warning/15 text-warning" },
     partially_received: { label: "Parcial", cls: "bg-warning/15 text-warning" },
     fully_received: { label: "Recebido", cls: "bg-accent-success/15 text-accent-success" },
   };

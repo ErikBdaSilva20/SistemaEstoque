@@ -77,25 +77,27 @@ Antes de criar um componente/util, **procure**:
 
 - Formatação de dinheiro, data, quantidade → `lib/formatters.ts` (existe, mantém).
 - Validação de CNPJ → `lib/cnpj.ts` (existe, mantém).
-- Diálogo de formulário com header/footer padrão → `components/ui/dialog` +
-  wrapper único `components/forms/FormDialog.tsx` (a criar no bloco B).
-- Tabela paginada com busca → `components/ui/data-table.tsx` (a criar no bloco B).
+- Diálogo de formulário com header/footer padrão → `components/forms/FormDialog.tsx` +
+  `components/forms/fields/*` (Text/Textarea/Number/Select/Date/Checkbox).
+- Tabela paginada com busca/ordenação → `components/data/DataTable.tsx`.
+- Estados de carregamento/erro/vazio → `components/feedback/*`.
+- Toast de sucesso/erro → `lib/toast.ts` (`toastSuccess`/`toastError`).
 - **Nunca copie-e-cole** um formulário/tabela para variar 2 campos. Extraia.
 
 ### 1.4 Erros clássicos de app "vibecodado" — proibidos
 
-| Sintoma                                                                            | Regra                                                                 |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Componente com 800+ linhas fazendo fetch + render + form + modal                   | Máx **250 linhas** por arquivo. Quebra em subcomponentes.             |
-| `any` espalhado, `@ts-ignore`, `// eslint-disable` sem justificativa em comentário | Proibido. TS strict ligado.                                           |
-| `useEffect` fazendo fetch manual em vez de React Query                             | Proibido. Todo I/O → hook do React Query.                             |
-| Estado global no `Context` para dado que veio de query                             | Proibido. Cache de servidor = React Query. Context só para sessão/UI. |
-| Lógica de negócio dentro de JSX (`{items.filter(...).map(...).reduce(...)}`)       | Extraia para função nomeada acima do `return`.                        |
-| Toast de erro genérico ("Algo deu errado")                                         | Toast sempre com mensagem útil. Erro do gateway tem `.message` — use. |
-| Nome mentiroso (`handleClick` que abre modal)                                      | Nome descreve o efeito: `openEditDialog`.                             |
-| Import não usado / variável não usada                                              | Build quebra (`noUnusedLocals`). Zero tolerância.                     |
-| Números mágicos (`if (qty > 5000)`)                                                | Constante nomeada em `features/<x>/constants.ts`.                     |
-| CSS inline com cores hex                                                           | Só tokens semânticos do design system (Viver de IA).                  |
+| Sintoma                                                                            | Regra                                                                                                                                   |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Componente com 800+ linhas fazendo fetch + render + form + modal                   | Máx **450 linhas** por arquivo. Quebra em subcomponentes. (Nota: Só vale apena quando temos muitas responsabilidades diferentes juntas) |
+| `any` espalhado, `@ts-ignore`, `// eslint-disable` sem justificativa em comentário | Proibido. TS strict ligado.                                                                                                             |
+| `useEffect` fazendo fetch manual em vez de React Query                             | Proibido. Todo I/O → hook do React Query.                                                                                               |
+| Estado global no `Context` para dado que veio de query                             | Proibido. Cache de servidor = React Query. Context só para sessão/UI.                                                                   |
+| Lógica de negócio dentro de JSX (`{items.filter(...).map(...).reduce(...)}`)       | Extraia para função nomeada acima do `return`.                                                                                          |
+| Toast de erro genérico ("Algo deu errado")                                         | Toast sempre com mensagem útil. Erro do gateway tem `.message` — use.                                                                   |
+| Nome mentiroso (`handleClick` que abre modal)                                      | Nome descreve o efeito: `openEditDialog`.                                                                                               |
+| Import não usado / variável não usada                                              | Build quebra (`noUnusedLocals`). Zero tolerância.                                                                                       |
+| Números mágicos (`if (qty > 5000)`)                                                | Constante nomeada em `features/<x>/constants.ts`.                                                                                       |
+| CSS inline com cores hex                                                           | Só tokens semânticos do design system (Viver de IA).                                                                                    |
 
 ### 1.5 Comentários
 
@@ -133,7 +135,7 @@ Todo story herda automaticamente:
 - [ ] Zero imports não usados, zero `any` sem justificativa.
 - [ ] Zero menção a `@supabase/*`, `@tanstack/react-start`, `supabase.functions.invoke`.
 - [ ] Zero menção a `owner_id` no front (nem em create, nem em update).
-- [ ] Este README atualizado (checkbox do story marcado + nota em §5).
+- [ ] Este README atualizado (checkbox do story marcado em §5).
 
 ---
 
@@ -198,35 +200,38 @@ sem erro, build limpo, zero import de Supabase.
 
 ### Bloco B — Design System + Primitivas 🟡
 
-**Objetivo:** criar os componentes reutilizáveis que **todos** os CRUDs vão
-usar. Investir aqui poupa 40% de código nos blocos C/D/E.
+**Objetivo:** componentes reutilizáveis que os CRUDs dos blocos C/D/E usam.
 
 Entregas (não são stories separados — parte do 002 + adendos):
 
 - `components/forms/FormDialog.tsx` — wrapper padrão de dialog+form.
 - `components/data/DataTable.tsx` — tabela paginada + busca + ordenação.
-- `components/forms/fields/*` — inputs padronizados (Text, Number, Select, Date).
+- `components/forms/fields/*` — inputs padronizados (Text, Textarea, Number, Select, Date, Checkbox).
 - `components/feedback/*` — EmptyState, ErrorState, LoadingState.
 - `lib/toast.ts` — helpers `toastSuccess/toastError` já lendo `.message` do erro.
 
-**Portão de saída:** existe um exemplo funcionando (CRUD fake de "categoria")
-que usa **só** essas primitivas.
+**Portão de saída:** primitivas em uso real nos formulários/tabelas do Bloco C (não um
+exemplo descartável — religar direto nos CRUDs reais vale mais).
 
 ### Bloco C — Cadastros Base 🟡
 
 Stories: `006` (produtos), `007` (fornecedores), `016` parcial (locais).
-Cadastro simples é a hora de **validar** as primitivas do Bloco B. Se um
-formulário aqui não usar `FormDialog`, o Bloco B está incompleto.
 
-**Portão:** CRUD completo dos 3, com import CSV **desligado** (fica no F).
+**Portão:** CRUD completo dos 3, usando as primitivas do Bloco B.
 
 ### Bloco D — Fluxo de Compra 🔴
 
-Stories: `008` (movimentações), `009` (PR), `010` (RFQ), `011` (PO), `012`
-(recebimento + kardex). Este é o coração do sistema e onde a **denormalização**
-do §B5 mais aparece. Faça na ordem — cada um depende do anterior.
+Stories: `008` (movimentações), `011` (Pedido de Compra), `012` (recebimento + kardex).
+**Redesenho:** `009` (Purchase Request) e `010` (RFQ/Cotação) foram fundidos num único
+"Pedido de Compra" — sem conversão automática entre entidades, sem comparação de cotações
+de múltiplos fornecedores. Motivo: aproximar do CRUD genérico que o Importantdoc pede (a
+maior parte do código de PR/RFQ era orquestração — conversão, motor de regras nunca lido de
+verdade, 2 fluxos de recebimento paralelos — não CRUD). Aprovação de pedido acima de um valor
+configurável (`purchase_rules.approval_min_amount`) fica direto no detalhe do pedido
+(botões Aprovar/Rejeitar), sem página de aprovações separada.
 
-**Portão:** PR → RFQ → PO → recebimento fecha ponta a ponta, kardex reflete.
+**Portão:** criar Pedido → (se acima do limite) aprovar → enviar → receber (parcial/total)
+fecha ponta a ponta, kardex reflete.
 
 ### Bloco E — Inventário, Relatórios, Dashboard 🟡
 
@@ -259,8 +264,8 @@ revisado.
    estiver marcado em §5, parar e fazer o de trás primeiro.
 4. **Implementar** respeitando §1 (Qualidade).
 5. **Rodar DoD** do story + DoD padrão.
-6. **Atualizar §5** deste arquivo — marcar checkbox + adicionar 1 linha em
-   "Nota da sessão" com data e o que ficou de aprendizado/débito.
+6. **Atualizar §5** deste arquivo — marcar checkbox e, se sobrou débito, deixar
+   registrado na própria linha do item (sem criar seção de notas separada).
 7. Commit.
 
 ---
@@ -271,61 +276,71 @@ revisado.
 > sessão vai refazer coisa ou pular etapa.
 
 **Status geral:** 🏗️ Implementação **em andamento**
-**Bloco corrente:** A (fechando) → C/D/E (religamento de telas em progresso)
-**Última atualização:** 2026-07-09 — detalhe em `_bmad-output/implementation-artifacts/`
+**Bloco corrente:** A/B/C/D/E estruturalmente prontos — falta validação E2E contra gateway real
+(bloqueada neste ambiente) e o Bloco F (testes automatizados, CI, polimento final).
 
 ### Bloco A — Fundação 🔴
 
 - [x] 001 · Bootstrap da stack — adaptado (sem scaffold `wiki`/gateway reais disponíveis)
 - [x] 002 · Design system — tokens já existentes mantidos
 - [x] 003 · Camada de dados `db` + React Query
-- [x] 004 · Auth via Better-Auth do gateway (endpoints não validados contra gateway real)
+- [x] 004 · Auth via Better-Auth do gateway
 - [x] 005 · Schema inicial (`0001_business_schema.sql`)
-- [ ] **Portão A:** `npm run build`, `npx tsc --noEmit` e `npm run lint` confirmados
-      limpos (2026-07-09, ver nota de sessão). Falta só: login/db testáveis contra
-      gateway real (bloqueado — sem gateway disponível neste ambiente).
-      Detalhe completo: `_bmad-output/implementation-artifacts/2026-07-09-story-001-bootstrap-session.md`
+- [ ] **Portão A:** `npm run build`, `npx tsc --noEmit` e `npm run lint` limpos. Falta só:
+      login/`db` validados contra um `tenant-gateway` real (bloqueado — sem gateway disponível
+      neste ambiente).
 
 ### Bloco B — Design System + Primitivas 🟡
 
-- [ ] `FormDialog` primitive
-- [ ] `DataTable` primitive
-- [ ] Fields padronizados (`Text/Number/Select/Date`)
-- [ ] Feedback states (`Empty/Error/Loading`)
-- [ ] `lib/toast.ts`
-- [ ] CRUD exemplo "categoria" usando só primitivas
-- [ ] **Portão B:** exemplo funcionando
+- [x] `FormDialog` primitive (`components/forms/FormDialog.tsx`)
+- [x] `DataTable` primitive (`components/data/DataTable.tsx`)
+- [x] Fields padronizados (`components/forms/fields/{Text,Textarea,Number,Select,Date,Checkbox}Field.tsx`)
+- [x] Feedback states (`components/feedback/{EmptyState,ErrorState,LoadingState}.tsx`)
+- [x] `lib/toast.ts` (`toastSuccess`/`toastError`)
+- [x] **Portão B:** primitivas em uso real nos formulários/tabelas de produtos, fornecedores e
+      locais (Bloco C)
 
 ### Bloco C — Cadastros Base 🟡
 
 - [x] 006 · Produtos CRUD — completo (tabela, form, lotes, kardex)
 - [x] 007 · Fornecedores CRUD — completo
 - [x] 016 parcial · Locais de estoque — completo
-- [ ] **Portão C:** telas fechadas; falta rodar `npm run build` limpo geral (outros blocos ainda pendentes)
+- [x] **Portão C:** telas fechadas, usando as primitivas do Bloco B
 
 ### Bloco D — Fluxo de Compra 🔴
 
-- [x] 008 · Movimentações de estoque — hooks prontos, telas pendentes
-- [ ] 009 · Purchase Requests — hook pronto, telas pendentes
-- [ ] 010 · Cotações (RFQ) — hook pronto, telas pendentes (envio manual — ext-004 pro envio real)
-- [x] 011 · Purchase Orders — detalhe/recebimento/conferência religados; impressão/form/lista pendentes
-- [ ] 012 · Recebimento + Kardex — lógica portada pro front, pendente validar E2E
-- [ ] **Portão D:** fluxo não fecha ponta a ponta na UI ainda; dados já portados nos hooks
+- [x] 008 · Movimentações de estoque
+- [x] 009/010 · **Supersedidos** — PR e RFQ fundidos em Pedido de Compra único (ver §3)
+- [x] 011 · Pedido de Compra — form, lista, detalhe, impressão, aprovação por valor
+      configurável (direto no detalhe, sem página separada)
+- [x] 012 · Recebimento + Kardex — um único fluxo de recebimento, kardex reflete as entradas
+- [ ] **Portão D:** fluxo criar → aprovar → enviar → receber (parcial/total) fecha ponta a ponta
+      na UI; falta validação E2E contra gateway real (mesmo bloqueio do Portão A)
 
 ### Bloco E — Inventário, Relatórios, Dashboard 🟡
 
-- [ ] 013 · Contagens de inventário — hook pronto, telas pendentes
-- [ ] 014 · Relatórios ABC + turnover — hook pronto, telas pendentes
-- [x] 015 · Dashboard — completo (forecast/anomalias removidos, ADR-007)
-- [ ] **Portão E:** falta religar telas de contagens e relatórios
+- [x] 013 · Contagens de inventário — completo
+- [x] 014 · Relatórios ABC + turnover — completo
+- [x] 015 · Dashboard — completo
+- [ ] **Portão E:** telas religadas; falta validação E2E contra gateway real (mesmo bloqueio do
+      Portão A) e medir "dashboard <1s com 5k produtos" (sem dados reais pra popular o cenário)
 
 ### Bloco F — Polimento 🟢
 
-- [ ] 016 final · Configurações restantes
-- [ ] 017 · Import/Export CSV
-- [ ] 018 · Impressão etiquetas + PO
-- [ ] 019 · Testes + qualidade
-- [ ] **Portão F:** `masi.template.json` pronto, template publicável
+- [x] 016 final · Configurações (Equipe/Locais/Regras de compra/Motivos de movimento)
+- [ ] 017 · Import/Export CSV — import de produtos/fornecedores e export XLSX existem e estão
+      ligados nas telas; não verificado: barra de progresso/sumário de erros em lotes grandes
+      (~1000 linhas sem travar a UI)
+- [ ] 018 · Impressão etiquetas + PO — `LabelsPrintDialog` e `PurchaseOrderPrint` existem
+- [ ] 019 · Testes + qualidade — testes em `lib/cnpj.ts`, `lib/formatters.ts`, `lib/reports.ts`
+      e `components/data/data-table-utils.ts`. Falta: testes de componente não-trivial,
+      Playwright, `.github/workflows/ci.yml` (fora de escopo por decisão do usuário)
+- [ ] 020 · Avaliar arquivos grandes caso a caso (§1.4 — só vale a pena separar quando há
+      responsabilidades diferentes misturadas, não só por linha). Já avaliados/refatorados:
+      `ProductFormDialog.tsx`, `PurchaseOrderDetail.tsx`. Ainda não avaliados:
+      `MovementFormDialog.tsx` (640L), `AnimatedAuthForm.tsx` (512L)
+- [ ] **Portão F:** `masi.template.json` pronto, template publicável; screenshots pendentes;
+      `THIRD_PARTY.md` existe, revisão final pendente
 
 ### Gateway Extensions (Onda 2 — fora do v1)
 
@@ -334,41 +349,6 @@ Referência apenas. Não marcar como feito no v1.
 - [ ] ext-001 realtime · [ ] ext-002 storage · [ ] ext-003 sale-webhook
 - [ ] ext-004 notificações · [ ] ext-005 barcode · [ ] ext-006 ai-chat
 - [ ] ext-007 push-inventory · [ ] ext-008 cron
-
-### Notas de sessão (append-only, mais recente no topo)
-
-- **2026-07-09** — Correção de causa-raiz (Amelia): `npm run lint` tinha
-  14.621 erros — 100% CRLF/prettier, zero bug real. Causa: `core.autocrlf=true`
-  neste ambiente Windows + ausência de `.gitattributes`, então todo checkout
-  vira CRLF e conflita com o `endOfLine` do Prettier. Criado `.gitattributes`
-  (`* text=auto eol=lf`) na raiz e rodado `git add --renormalize .` +
-  `eslint . --fix` pra normalizar o repo inteiro. Estado confirmado após:
-  `npm run build` limpo, `npx tsc --noEmit` limpo, `npm run lint` com **0
-  erros** (restam só 9 warnings `react-refresh`/`exhaustive-deps`: 6 em
-  `components/ui/**` — shadcn protegido —, 2 em `.legacy/out-of-scope-v1/**` —
-  fora do escopo v1 —, e 1 em `src/contexts/AuthContext.tsx` — export de
-  contexto + provider no mesmo arquivo, padrão React comum, só afeta
-  granularidade do Fast Refresh em dev; considerar separar `auth-context.ts`
-  se sobrar tempo no Bloco F, não é bloqueante). Corrigido também ADR-010 em
-  `architecture/05-decisoes.md`, que estava com título ambíguo ("pt-BR em
-  tudo") e já tinha causado uma IA gerar código inteiro em português — agora
-  o escopo pt-BR está restrito e explícito (tabela/coluna, entidade de
-  domínio, UI, docs). Nenhum commit foi feito nesta sessão — mudanças ficam
-  no working tree para revisão do usuário.
-- **2026-07-09** — Sessão longa de implementação (Amelia): schema novo, camada
-  de dados/auth/hooks 100% reescritos sobre o contrato do gateway, features
-  fora do v1 movidas pra `.legacy/out-of-scope-v1/`, boa parte das telas
-  religada. Build ainda não limpo. Detalhe completo, decisões e checklist de
-  pendências em
-  `_bmad-output/implementation-artifacts/2026-07-09-story-001-bootstrap-session.md`
-  (não duplicado aqui pra não poluir este README).
-- **2026-07-09** — Criado `THIRD_PARTY.md` na raiz creditando o template
-  **Viver de IA** como plataforma de origem do remix, mais bibliotecas cujo
-  markup foi copiado (shadcn, Radix, Tailwind, Lucide, TanStack Query, React
-  Router, Framer Motion). Revisão obrigatória no Bloco F / story 019.
-- **2026-07-09** — Documentação (arquitetura, auditoria, 19 stories v1, 8
-  extensões) finalizada. Este README passa a ser o cérebro. Próximo passo:
-  iniciar Bloco A / story 001.
 
 ---
 
@@ -396,8 +376,8 @@ Referência apenas. Não marcar como feito no v1.
 
 1. **Leia este arquivo inteiro** antes de tocar em qualquer coisa.
 2. **Confie no §5** — é a única fonte de verdade sobre onde paramos.
-3. **Não crie arquivo de "TODO" novo.** Se precisa registrar débito, adicione
-   linha em "Notas de sessão" (§5).
+3. **Não crie arquivo de "TODO" novo.** Se precisa registrar débito, deixe na
+   própria linha do item em §5 — sem seção de notas separada.
 4. **Não avance de bloco** sem o portão anterior marcado.
 5. **Ao concluir**, atualize §5 na mesma sessão. Sem isso, a próxima IA vai
    quebrar o trabalho.

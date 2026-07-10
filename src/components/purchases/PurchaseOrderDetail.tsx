@@ -1,7 +1,16 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Ban, ClipboardCheck, PackageCheck, Printer, Send, Truck } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowLeft,
+  Ban,
+  Check,
+  PackageCheck,
+  Printer,
+  Send,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,23 +34,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePurchaseOrder, usePurchaseMutations, type PurchaseOrder } from "@/hooks/usePurchases";
 import { usePurchaseRules } from "@/hooks/usePurchaseRules";
+import { useAuth } from "@/hooks/useAuth";
+import { listStockMovements } from "@/lib/data/stock_movements.repo";
 import { formatBRL, formatDate, formatDateTime, formatNumber } from "@/lib/formatters";
 import { ReceiveItemsDialog } from "./ReceiveItemsDialog";
 import { PurchaseOrderPrint } from "./PurchaseOrderPrint";
-import { PoCheckDialog } from "./PoCheckDialog";
-import { PurchaseChainBreadcrumb } from "./PurchaseChainBreadcrumb";
-import { mapGatewayError } from "@/lib/errors";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: string }> = {
   draft: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
@@ -49,13 +47,8 @@ const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: s
     label: "Aguardando aprovação",
     className: "bg-warning/15 text-warning",
   },
-  approved: { label: "Aprovado", className: "bg-accent-success/15 text-accent-success" },
   rejected: { label: "Rejeitado", className: "bg-destructive/15 text-destructive" },
   sent: { label: "Enviado", className: "bg-accent-primary/15 text-accent-primary" },
-  delivered_pending_check: {
-    label: "Entregue — aguardando conferência",
-    className: "bg-accent-primary/20 text-accent-primary",
-  },
   partially_received: {
     label: "Parcialmente recebido",
     className: "bg-warning/15 text-warning",
@@ -69,15 +62,23 @@ const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: s
 
 export function PurchaseOrderDetail({ id }: { id: string }) {
   const { data: order, isLoading } = usePurchaseOrder(id);
-  const { submit, cancel, markDelivered } = usePurchaseMutations();
+  const { submit, approve, reject, cancel } = usePurchaseMutations();
   const { data: rules } = usePurchaseRules();
+  const { isAdmin, isManager } = useAuth();
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
-  const [submitOpen, setSubmitOpen] = useState(false);
-  const [checkOpen, setCheckOpen] = useState(false);
-  const [declaredQuotes, setDeclaredQuotes] = useState<string>("");
-  const [justification, setJustification] = useState("");
+
+  const { data: receipts = [] } = useQuery({
+    queryKey: ["purchase-receipts", id],
+    enabled: !!order,
+    queryFn: async () => {
+      const movements = await listStockMovements();
+      return movements
+        .filter((m) => m.reference_id === id && m.type === "in")
+        .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    },
+  });
 
   if (isLoading) {
     return <Skeleton className="h-64 w-full" />;
@@ -96,75 +97,45 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
 
   const meta = STATUS_META[order.status];
   const canSend = order.status === "draft";
-
-  // Decide whether to show "Mark delivered" or "Receive directly" -- depends on the rules.
-  const total = Number(order.total_amount);
-  const requiresCheck =
-    rules?.requires_delivery_check === true ||
-    (rules?.delivery_check_min_amount != null && total >= Number(rules.delivery_check_min_amount));
-
-  const canMarkDelivered =
-    requiresCheck && (order.status === "sent" || order.status === "partially_received");
-  const canReceiveDirect =
-    !requiresCheck && (order.status === "sent" || order.status === "partially_received");
-  const canCheck = order.status === "delivered_pending_check";
+  const canReceive = order.status === "sent" || order.status === "partially_received";
+  const canApprove = order.status === "pending_approval" && (isAdmin || isManager);
   const canCancel =
-    order.status === "draft" ||
-    order.status === "sent" ||
-    order.status === "partially_received" ||
-    order.status === "delivered_pending_check";
+    order.status === "draft" || order.status === "sent" || order.status === "partially_received";
 
-  const minQuotes = rules?.min_quotes_required ?? 0;
+  const total = Number(order.total_amount);
   const amountThreshold = rules?.approval_min_amount ?? null;
-  const currentQuotes = order.quotes_count ?? 0;
-  const mayNeedJustification =
-    rules?.requires_justification_below_min_quotes && minQuotes > 0 && currentQuotes < minQuotes;
-  const mayNeedApproval = amountThreshold != null && total >= Number(amountThreshold);
-  const needsDialog = mayNeedJustification || mayNeedApproval;
+  const needsApproval = amountThreshold != null && total >= Number(amountThreshold);
 
-  const openSendFlow = () => {
-    if (!needsDialog) {
-      submit.mutate(
-        { orderId: order.id, justification: null, needsApproval: false },
-        {
-          onSuccess: () => toast.success("Pedido enviado ao fornecedor."),
-          onError: (e) => toast.error(mapGatewayError(e)),
-        },
-      );
-      return;
-    }
-    setDeclaredQuotes(String(Math.max(currentQuotes, 0)));
-    setJustification(order.justification ?? "");
-    setSubmitOpen(true);
-  };
-
-  const confirmSend = () => {
-    const n = Number(declaredQuotes);
-    const declared = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-    const needsJust =
-      rules?.requires_justification_below_min_quotes && minQuotes > 0 && declared < minQuotes;
-
-    if (needsJust && justification.trim().length < 10) {
-      toast.error(
-        "Justificativa obrigatória (mín. 10 caracteres) quando cotações < mínimo exigido.",
-      );
-      return;
-    }
-
+  const handleSend = () => {
     submit.mutate(
-      {
-        orderId: order.id,
-        justification: justification.trim() || null,
-        needsApproval: mayNeedApproval,
-      },
+      { orderId: order.id, needsApproval },
       {
         onSuccess: () => {
-          toast.success(
-            mayNeedApproval ? "Pedido enviado pra aprovação." : "Pedido enviado ao fornecedor.",
+          toastSuccess(
+            needsApproval ? "Pedido enviado pra aprovação." : "Pedido enviado ao fornecedor.",
           );
-          setSubmitOpen(false);
         },
-        onError: (e) => toast.error(mapGatewayError(e)),
+        onError: (e) => toastError(e),
+      },
+    );
+  };
+
+  const handleApprove = () => {
+    approve.mutate(
+      { orderId: order.id },
+      {
+        onSuccess: () => toastSuccess("Pedido aprovado."),
+        onError: (e) => toastError(e),
+      },
+    );
+  };
+
+  const handleReject = () => {
+    reject.mutate(
+      { orderId: order.id, comment: "" },
+      {
+        onSuccess: () => toastSuccess("Pedido rejeitado."),
+        onError: (e) => toastError(e),
       },
     );
   };
@@ -172,30 +143,14 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
   const handleCancel = () => {
     cancel.mutate(order.id, {
       onSuccess: () => {
-        toast.success("Pedido cancelado.");
+        toastSuccess("Pedido cancelado.");
         setCancelOpen(false);
       },
       onError: (e) => {
-        toast.error(mapGatewayError(e));
+        toastError(e);
         setCancelOpen(false);
       },
     });
-  };
-
-  const handleMarkDelivered = () => {
-    markDelivered.mutate(
-      { orderId: order.id, deliveredAt: null, needsCheck: requiresCheck },
-      {
-        onSuccess: () => {
-          toast.success(
-            requiresCheck
-              ? "Entrega registrada. Pedido aguardando conferência."
-              : "Entrega registrada.",
-          );
-        },
-        onError: (e) => toast.error(mapGatewayError(e)),
-      },
-    );
   };
 
   return (
@@ -208,14 +163,6 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
           </Link>
         </Button>
       </div>
-
-      <PurchaseChainBreadcrumb
-        pr={null}
-        rfq={null}
-        po={{ id: order.id, code: order.code }}
-        receivedFull={order.status === "fully_received"}
-        active={order.status === "fully_received" ? "received" : "po"}
-      />
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -232,39 +179,34 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link to={`/purchases/${order.id}/accountability`}>
-              <ClipboardCheck className="mr-2 h-4 w-4" />
-              Prestação de contas
-            </Link>
-          </Button>
           <Button variant="outline" onClick={() => setPrintOpen(true)}>
             <Printer className="mr-2 h-4 w-4" />
             Imprimir
           </Button>
           {canSend && (
-            <Button onClick={openSendFlow} disabled={submit.isPending}>
+            <Button onClick={handleSend} disabled={submit.isPending}>
               <Send className="mr-2 h-4 w-4" />
               Enviar ao fornecedor
             </Button>
           )}
-          {canMarkDelivered && (
-            <Button
-              variant="outline"
-              onClick={handleMarkDelivered}
-              disabled={markDelivered.isPending}
-            >
-              <Truck className="mr-2 h-4 w-4" />
-              {markDelivered.isPending ? "Registrando..." : "Marcar como entregue"}
-            </Button>
+          {canApprove && (
+            <>
+              <Button onClick={handleApprove} disabled={approve.isPending}>
+                <Check className="mr-2 h-4 w-4" />
+                Aprovar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleReject}
+                disabled={reject.isPending}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Rejeitar
+              </Button>
+            </>
           )}
-          {canCheck && (
-            <Button onClick={() => setCheckOpen(true)}>
-              <ClipboardCheck className="mr-2 h-4 w-4" />
-              Conferir entrega
-            </Button>
-          )}
-          {canReceiveDirect && (
+          {canReceive && (
             <Button onClick={() => setReceiveOpen(true)}>
               <PackageCheck className="mr-2 h-4 w-4" />
               Receber itens
@@ -357,11 +299,33 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
         </Table>
       </div>
 
+      {receipts.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-border bg-card shadow-elevation-1">
+          <div className="flex items-center gap-2 border-b border-border p-4">
+            <ArrowDownCircle className="h-4 w-4 text-accent-success" />
+            <h2 className="text-sm font-medium">Recebimentos ({receipts.length})</h2>
+          </div>
+          <ul className="divide-y divide-border text-sm">
+            {receipts.map((r) => (
+              <li key={r.id} className="flex items-start justify-between p-4">
+                <div>
+                  <div className="font-medium">{r.product_name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatDateTime(r.created_at)}
+                  </div>
+                </div>
+                <span className="font-semibold tabular-nums text-accent-success">
+                  +{formatNumber(Number(r.quantity))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {order.items.length > 0 && (
         <ReceiveItemsDialog open={receiveOpen} onOpenChange={setReceiveOpen} order={order} />
       )}
-
-      <PoCheckDialog open={checkOpen} onOpenChange={setCheckOpen} order={order} />
 
       <PurchaseOrderPrint open={printOpen} onOpenChange={setPrintOpen} order={order} />
 
@@ -384,77 +348,6 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enviar pedido ao fornecedor</DialogTitle>
-            <DialogDescription>
-              {mayNeedApproval && (
-                <span className="block">
-                  Valor <strong>{formatBRL(total)}</strong> está acima do limite que exige aprovação
-                  ({formatBRL(Number(amountThreshold))}). Após enviar, o pedido ficará em{" "}
-                  <em>Aguardando aprovação</em>.
-                </span>
-              )}
-              {mayNeedJustification && (
-                <span className="block mt-1">
-                  A regra da empresa exige <strong>{minQuotes}</strong> cotações. Se você obteve
-                  menos, é necessário justificar.
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="declared-quotes" className="text-xs">
-                Nº de cotações que você obteve
-              </Label>
-              <Input
-                id="declared-quotes"
-                type="number"
-                min="0"
-                step="1"
-                value={declaredQuotes}
-                onChange={(e) => setDeclaredQuotes(e.target.value)}
-                className="mt-1"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Mínimo exigido: {minQuotes || "—"}
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="justification" className="text-xs">
-                Justificativa {mayNeedJustification && "*"}
-              </Label>
-              <Textarea
-                id="justification"
-                rows={3}
-                value={justification}
-                onChange={(e) => setJustification(e.target.value)}
-                placeholder="Ex: fornecedor exclusivo; urgência produção; etc."
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSubmitOpen(false)}
-              disabled={submit.isPending}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={confirmSend} disabled={submit.isPending}>
-              {submit.isPending ? "Enviando..." : "Confirmar envio"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

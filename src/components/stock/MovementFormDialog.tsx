@@ -2,24 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import { Check, ChevronsUpDown } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormDialog } from "@/components/forms/FormDialog";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -55,7 +40,7 @@ import {
 } from "@/hooks/useMovementReasons";
 import { cn } from "@/lib/utils";
 import { formatDate, formatNumber } from "@/lib/formatters";
-import { mapGatewayError } from "@/lib/errors";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 const REASON_FREEFORM = "__custom__";
 
@@ -192,10 +177,10 @@ export function MovementFormDialog({
         notes: values.notes?.trim() || null,
         origin: "manual",
       });
-      toast.success("Movimentação registrada.");
+      toastSuccess("Movimentação registrada.");
       onOpenChange(false);
     } catch (e) {
-      toast.error(mapGatewayError(e));
+      toastError(e);
     }
   };
 
@@ -209,467 +194,447 @@ export function MovementFormDialog({
   }, [selectedProduct, type, form]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Registrar movimentação</DialogTitle>
-          <DialogDescription>Entrada, saída ou ajuste de estoque.</DialogDescription>
-        </DialogHeader>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title="Registrar movimentação"
+      description="Entrada, saída ou ajuste de estoque."
+      busy={create.isPending}
+      submitLabel="Registrar"
+      busyLabel="Registrando..."
+    >
+      <FormField
+        control={form.control}
+        name="product_id"
+        render={({ field }) => (
+          <FormItem className="flex flex-col">
+            <FormLabel>Produto *</FormLabel>
+            <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      "w-full justify-between font-normal",
+                      !field.value && "text-muted-foreground",
+                    )}
+                  >
+                    {selectedProduct
+                      ? `${selectedProduct.name} (${selectedProduct.sku})`
+                      : "Selecione um produto"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar produto..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum produto.</CommandEmpty>
+                    <CommandGroup>
+                      {products.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={`${p.name} ${p.sku} ${p.barcode ?? ""}`}
+                          onSelect={() => {
+                            form.setValue("product_id", p.id);
+                            setProductPickerOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              p.id === field.value ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{p.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {p.sku} · estoque {formatNumber(p.current_stock)} {p.unit}
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipo *</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="in">Entrada</SelectItem>
+                  <SelectItem value="out">Saída</SelectItem>
+                  <SelectItem value="adjustment">Ajuste (+/-)</SelectItem>
+                  <SelectItem value="transfer">Transferência entre locais</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="quantity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Quantidade {type === "adjustment" && "(+/-)"}</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.001"
+                  {...field}
+                  value={field.value as number | string | undefined}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      {locations.length > 0 && (
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="location_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{type === "transfer" ? "Origem" : "Local"}</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {locations.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
+                        {l.is_default ? " (padrão)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {type === "transfer" && (
             <FormField
               control={form.control}
-              name="product_id"
+              name="destination_location_id"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Produto *</FormLabel>
-                  <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between font-normal",
-                            !field.value && "text-muted-foreground",
+                <FormItem>
+                  <FormLabel>Destino</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {locations
+                        .filter((l) => l.id !== sourceLocationId)
+                        .map((l) => (
+                          <SelectItem key={l.id} value={l.id}>
+                            {l.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+      )}
+
+      {selectedProduct?.track_batches && availableBatches.length > 0 && (
+        <FormField
+          control={form.control}
+          name="batch_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Lote{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (FEFO — vencimento mais próximo primeiro)
+                </span>
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sem lote específico" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {availableBatches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.batch_code} · {formatNumber(b.quantity)} {selectedProduct.unit}
+                      {b.expiration_date ? ` · venc ${formatDate(b.expiration_date)}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {selectedProduct && predictedStock !== null && type !== "transfer" && (
+        <div className="rounded-md bg-muted/50 p-3 text-sm">
+          <span className="text-muted-foreground">Estoque após movimentação: </span>
+          <span
+            className={cn(
+              "font-semibold",
+              predictedStock < 0 && "text-destructive",
+              predictedStock < Number(selectedProduct.min_stock) &&
+                predictedStock >= 0 &&
+                "text-warning",
+            )}
+          >
+            {formatNumber(predictedStock)} {selectedProduct.unit}
+          </span>
+          {predictedStock < 0 && (
+            <span className="ml-2 text-xs text-destructive">⚠ estoque ficará negativo</span>
+          )}
+        </div>
+      )}
+
+      {type === "out" && (
+        <FormField
+          control={form.control}
+          name="destination_id"
+          render={({ field }) => {
+            const selectedDestination = destinations.find((d) => d.id === field.value);
+            const searchTrimmed = destinationSearch.trim();
+            const nameAlreadyExists = destinations.some(
+              (d) => d.name.toLowerCase() === searchTrimmed.toLowerCase(),
+            );
+            const handleCreate = async (kind: DestinationKind) => {
+              if (!searchTrimmed) return;
+              try {
+                const created = await createDestination.mutateAsync({
+                  name: searchTrimmed,
+                  kind,
+                });
+                field.onChange(created.id);
+                setDestinationSearch("");
+                setDestinationPickerOpen(false);
+                toastSuccess("Destino cadastrado.");
+              } catch (e) {
+                toastError(e);
+              }
+            };
+            return (
+              <FormItem className="flex flex-col">
+                <FormLabel>Destino *</FormLabel>
+                <Popover open={destinationPickerOpen} onOpenChange={setDestinationPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          !field.value && "text-muted-foreground",
+                        )}
+                      >
+                        {selectedDestination
+                          ? `${selectedDestination.name} (${selectedDestination.kind})`
+                          : "Selecione ou cadastre um destino"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command shouldFilter>
+                      <CommandInput
+                        placeholder="Buscar ou digitar novo..."
+                        value={destinationSearch}
+                        onValueChange={setDestinationSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {searchTrimmed ? (
+                            <div className="space-y-2 p-2 text-left">
+                              <p className="text-xs text-muted-foreground">
+                                Cadastrar "{searchTrimmed}" como:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  type="button"
+                                  disabled={createDestination.isPending}
+                                  onClick={() => handleCreate("sector")}
+                                >
+                                  Setor
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  type="button"
+                                  disabled={createDestination.isPending}
+                                  onClick={() => handleCreate("consumer")}
+                                >
+                                  Consumidor
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  type="button"
+                                  disabled={createDestination.isPending}
+                                  onClick={() => handleCreate("other")}
+                                >
+                                  Outro
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            "Digite para buscar ou cadastrar."
                           )}
-                        >
-                          {selectedProduct
-                            ? `${selectedProduct.name} (${selectedProduct.sku})`
-                            : "Selecione um produto"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar produto..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum produto.</CommandEmpty>
+                        </CommandEmpty>
+                        {destinations.length > 0 && (
                           <CommandGroup>
-                            {products.map((p) => (
+                            {destinations.map((d) => (
                               <CommandItem
-                                key={p.id}
-                                value={`${p.name} ${p.sku} ${p.barcode ?? ""}`}
+                                key={d.id}
+                                value={`${d.name} ${d.kind}`}
                                 onSelect={() => {
-                                  form.setValue("product_id", p.id);
-                                  setProductPickerOpen(false);
+                                  field.onChange(d.id);
+                                  setDestinationPickerOpen(false);
+                                  setDestinationSearch("");
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    p.id === field.value ? "opacity-100" : "opacity-0",
+                                    field.value === d.id ? "opacity-100" : "opacity-0",
                                   )}
                                 />
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium">{p.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {p.sku} · estoque {formatNumber(p.current_stock)} {p.unit}
-                                  </div>
-                                </div>
+                                <span className="flex-1">{d.name}</span>
+                                <span className="text-xs text-muted-foreground">{d.kind}</span>
                               </CommandItem>
                             ))}
                           </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="in">Entrada</SelectItem>
-                        <SelectItem value="out">Saída</SelectItem>
-                        <SelectItem value="adjustment">Ajuste (+/-)</SelectItem>
-                        <SelectItem value="transfer">Transferência entre locais</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade {type === "adjustment" && "(+/-)"}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.001"
-                        {...field}
-                        value={field.value as number | string | undefined}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {locations.length > 0 && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="location_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{type === "transfer" ? "Origem" : "Local"}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {locations.map((l) => (
-                            <SelectItem key={l.id} value={l.id}>
-                              {l.name}
-                              {l.is_default ? " (padrão)" : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {type === "transfer" && (
-                  <FormField
-                    control={form.control}
-                    name="destination_location_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Destino</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {locations
-                              .filter((l) => l.id !== sourceLocationId)
-                              .map((l) => (
-                                <SelectItem key={l.id} value={l.id}>
-                                  {l.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            )}
-
-            {selectedProduct?.track_batches && availableBatches.length > 0 && (
-              <FormField
-                control={form.control}
-                name="batch_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Lote{" "}
-                      <span className="text-xs text-muted-foreground font-normal">
-                        (FEFO — vencimento mais próximo primeiro)
-                      </span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sem lote específico" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableBatches.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.batch_code} · {formatNumber(b.quantity)} {selectedProduct.unit}
-                            {b.expiration_date ? ` · venc ${formatDate(b.expiration_date)}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {selectedProduct && predictedStock !== null && type !== "transfer" && (
-              <div className="rounded-md bg-muted/50 p-3 text-sm">
-                <span className="text-muted-foreground">Estoque após movimentação: </span>
-                <span
-                  className={cn(
-                    "font-semibold",
-                    predictedStock < 0 && "text-destructive",
-                    predictedStock < Number(selectedProduct.min_stock) &&
-                      predictedStock >= 0 &&
-                      "text-warning",
-                  )}
-                >
-                  {formatNumber(predictedStock)} {selectedProduct.unit}
-                </span>
-                {predictedStock < 0 && (
-                  <span className="ml-2 text-xs text-destructive">⚠ estoque ficará negativo</span>
-                )}
-              </div>
-            )}
-
-            {type === "out" && (
-              <FormField
-                control={form.control}
-                name="destination_id"
-                render={({ field }) => {
-                  const selectedDestination = destinations.find((d) => d.id === field.value);
-                  const searchTrimmed = destinationSearch.trim();
-                  const nameAlreadyExists = destinations.some(
-                    (d) => d.name.toLowerCase() === searchTrimmed.toLowerCase(),
-                  );
-                  const handleCreate = async (kind: DestinationKind) => {
-                    if (!searchTrimmed) return;
-                    try {
-                      const created = await createDestination.mutateAsync({
-                        name: searchTrimmed,
-                        kind,
-                      });
-                      field.onChange(created.id);
-                      setDestinationSearch("");
-                      setDestinationPickerOpen(false);
-                      toast.success("Destino cadastrado.");
-                    } catch (e) {
-                      toast.error(mapGatewayError(e));
-                    }
-                  };
-                  return (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Destino *</FormLabel>
-                      <Popover open={destinationPickerOpen} onOpenChange={setDestinationPickerOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between font-normal",
-                                !field.value && "text-muted-foreground",
-                              )}
+                        )}
+                        {searchTrimmed && !nameAlreadyExists && destinations.length > 0 && (
+                          <CommandGroup heading="Cadastrar novo">
+                            <CommandItem
+                              value={`__create_sector__${searchTrimmed}`}
+                              onSelect={() => handleCreate("sector")}
                             >
-                              {selectedDestination
-                                ? `${selectedDestination.name} (${selectedDestination.kind})`
-                                : "Selecione ou cadastre um destino"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-[--radix-popover-trigger-width] p-0"
-                          align="start"
-                        >
-                          <Command shouldFilter>
-                            <CommandInput
-                              placeholder="Buscar ou digitar novo..."
-                              value={destinationSearch}
-                              onValueChange={setDestinationSearch}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                {searchTrimmed ? (
-                                  <div className="space-y-2 p-2 text-left">
-                                    <p className="text-xs text-muted-foreground">
-                                      Cadastrar "{searchTrimmed}" como:
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        type="button"
-                                        disabled={createDestination.isPending}
-                                        onClick={() => handleCreate("sector")}
-                                      >
-                                        Setor
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        type="button"
-                                        disabled={createDestination.isPending}
-                                        onClick={() => handleCreate("consumer")}
-                                      >
-                                        Consumidor
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        type="button"
-                                        disabled={createDestination.isPending}
-                                        onClick={() => handleCreate("other")}
-                                      >
-                                        Outro
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  "Digite para buscar ou cadastrar."
-                                )}
-                              </CommandEmpty>
-                              {destinations.length > 0 && (
-                                <CommandGroup>
-                                  {destinations.map((d) => (
-                                    <CommandItem
-                                      key={d.id}
-                                      value={`${d.name} ${d.kind}`}
-                                      onSelect={() => {
-                                        field.onChange(d.id);
-                                        setDestinationPickerOpen(false);
-                                        setDestinationSearch("");
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          field.value === d.id ? "opacity-100" : "opacity-0",
-                                        )}
-                                      />
-                                      <span className="flex-1">{d.name}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {d.kind}
-                                      </span>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              )}
-                              {searchTrimmed && !nameAlreadyExists && destinations.length > 0 && (
-                                <CommandGroup heading="Cadastrar novo">
-                                  <CommandItem
-                                    value={`__create_sector__${searchTrimmed}`}
-                                    onSelect={() => handleCreate("sector")}
-                                  >
-                                    + Cadastrar "{searchTrimmed}" como Setor
-                                  </CommandItem>
-                                  <CommandItem
-                                    value={`__create_consumer__${searchTrimmed}`}
-                                    onSelect={() => handleCreate("consumer")}
-                                  >
-                                    + Cadastrar "{searchTrimmed}" como Consumidor
-                                  </CommandItem>
-                                </CommandGroup>
-                              )}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            )}
+                              + Cadastrar "{searchTrimmed}" como Setor
+                            </CommandItem>
+                            <CommandItem
+                              value={`__create_consumer__${searchTrimmed}`}
+                              onSelect={() => handleCreate("consumer")}
+                            >
+                              + Cadastrar "{searchTrimmed}" como Consumidor
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
+        />
+      )}
 
-            <FormField
-              control={form.control}
-              name="reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Motivo</FormLabel>
-                  {reasons.length > 0 ? (
-                    <div className="space-y-2">
-                      <Select
-                        value={reasonMode}
-                        onValueChange={(value) => {
-                          setReasonMode(value);
-                          if (value === REASON_FREEFORM) {
-                            field.onChange("");
-                          } else if (value === "") {
-                            field.onChange("");
-                          } else {
-                            field.onChange(value);
-                          }
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um motivo cadastrado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {reasons.map((r) => (
-                            <SelectItem key={r.id} value={r.label}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value={REASON_FREEFORM}>✏️ Outro motivo (digitar)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {reasonMode === REASON_FREEFORM && (
-                        <FormControl>
-                          <Input
-                            placeholder="Digite o motivo"
-                            value={field.value ?? ""}
-                            onChange={field.onChange}
-                          />
-                        </FormControl>
-                      )}
-                    </div>
-                  ) : (
-                    <FormControl>
-                      <Input placeholder="Ex: Venda balcão, Contagem, Quebra..." {...field} />
-                    </FormControl>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
+      <FormField
+        control={form.control}
+        name="reason"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Motivo</FormLabel>
+            {reasons.length > 0 ? (
+              <div className="space-y-2">
+                <Select
+                  value={reasonMode}
+                  onValueChange={(value) => {
+                    setReasonMode(value);
+                    if (value === REASON_FREEFORM) {
+                      field.onChange("");
+                    } else if (value === "") {
+                      field.onChange("");
+                    } else {
+                      field.onChange(value);
+                    }
+                  }}
+                >
                   <FormControl>
-                    <Textarea rows={2} {...field} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um motivo cadastrado" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={create.isPending}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={create.isPending}>
-                {create.isPending ? "Registrando..." : "Registrar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+                  <SelectContent>
+                    {reasons.map((r) => (
+                      <SelectItem key={r.id} value={r.label}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={REASON_FREEFORM}>✏️ Outro motivo (digitar)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {reasonMode === REASON_FREEFORM && (
+                  <FormControl>
+                    <Input
+                      placeholder="Digite o motivo"
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                )}
+              </div>
+            ) : (
+              <FormControl>
+                <Input placeholder="Ex: Venda balcão, Contagem, Quebra..." {...field} />
+              </FormControl>
+            )}
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="notes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Observações</FormLabel>
+            <FormControl>
+              <Textarea rows={2} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </FormDialog>
   );
 }

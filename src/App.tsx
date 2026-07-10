@@ -16,7 +16,6 @@ import Suppliers from "@/pages/Suppliers";
 import Purchases from "@/pages/Purchases";
 import NewPurchase from "@/pages/NewPurchase";
 import PurchaseDetail from "@/pages/PurchaseDetail";
-import PurchaseAccountabilityPage from "@/pages/PurchaseAccountability";
 import Counts from "@/pages/Counts";
 import CountDetail from "@/pages/CountDetail";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
@@ -25,13 +24,6 @@ import SettingsTeam from "@/pages/settings/SettingsTeam";
 import SettingsLocations from "@/pages/settings/SettingsLocations";
 import SettingsPurchaseRules from "@/pages/settings/SettingsPurchaseRules";
 import SettingsMovementReasons from "@/pages/settings/SettingsMovementReasons";
-import Approvals from "@/pages/Approvals";
-import Requests from "@/pages/Requests";
-import NewRequest from "@/pages/NewRequest";
-import RequestDetail from "@/pages/RequestDetail";
-import Quotes from "@/pages/Quotes";
-import NewQuote from "@/pages/NewQuote";
-import QuoteDetail from "@/pages/QuoteDetail";
 import NotFound from "@/pages/NotFound";
 import { RoleGate } from "@/components/auth/RoleGate";
 
@@ -108,26 +100,15 @@ export default function App() {
                 <Route path="/purchases" element={<Purchases />} />
                 <Route path="/purchases/new" element={<NewPurchase />} />
                 <Route path="/purchases/:id" element={<PurchaseDetail />} />
-                <Route
-                  path="/purchases/:id/accountability"
-                  element={<PurchaseAccountabilityPage />}
-                />
                 <Route path="/counts" element={<Counts />} />
                 <Route path="/counts/:id" element={<CountDetail />} />
                 <Route path="/reports" element={<Reports />} />
-                <Route path="/requests" element={<Requests />} />
-                <Route path="/requests/new" element={<NewRequest />} />
-                <Route path="/requests/:id" element={<RequestDetail />} />
               </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
               <Route element={<AppShell />}>
                 <Route path="/suppliers" element={<Suppliers />} />
-                <Route path="/approvals" element={<Approvals />} />
-                <Route path="/quotes" element={<Quotes />} />
-                <Route path="/quotes/new" element={<NewQuote />} />
-                <Route path="/quotes/:id" element={<QuoteDetail />} />
                 <Route
                   path="/settings"
                   element={

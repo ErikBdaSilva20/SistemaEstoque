@@ -1,3 +1,7 @@
+> **SUPERSEDIDO.** RFQ foi fundido com PR (story 009) num único "Pedido de Compra" (story 011) —
+> ver `docs/README.md` §3/§5 (Bloco D). Sem comparação de cotações de múltiplos fornecedores como
+> entidade separada; mantido aqui só como histórico de decisão.
+
 # Story 010 — Cotações (RFQ)
 
 **Prioridade:** P1 · **Escopo:** v1 · **Depende de:** 007, 009

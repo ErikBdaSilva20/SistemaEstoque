@@ -10,9 +10,6 @@ import {
   ArrowLeftRight,
   BarChart3,
   ClipboardList,
-  ShieldCheck,
-  FileText,
-  FileCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -69,9 +66,6 @@ export default function AppShell() {
   ];
 
   const managementNavItems: NavItemConfig[] = [
-    { to: "/requests", icon: FileCheck, label: "Solicitações" },
-    ...(canManage ? [{ to: "/quotes", icon: FileText, label: "Orçamentos" }] : []),
-    ...(canManage ? [{ to: "/approvals", icon: ShieldCheck, label: "Aprovações" }] : []),
     ...(canManage ? [{ to: "/suppliers", icon: Truck, label: "Fornecedores" }] : []),
     { to: "/settings/team", icon: SettingsIcon, label: "Configurações" },
   ];

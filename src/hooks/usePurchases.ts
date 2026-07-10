@@ -175,18 +175,11 @@ export function usePurchaseMutations() {
     onSuccess: invalidate,
   });
 
-  // RPC `submit_purchase_order` dropped (ADR-006): approval rules (min amount,
-  // min quotes) are evaluated client-side before calling this mutation -- see
-  // PurchaseOrderForm / purchase_rules.
+  // RPC `submit_purchase_order` dropped (ADR-006): the approval-amount rule
+  // is evaluated client-side before calling this mutation -- see
+  // PurchaseOrderDetail / purchase_rules.
   const submit = useMutation({
-    mutationFn: ({
-      orderId,
-      needsApproval,
-    }: {
-      orderId: string;
-      justification?: string | null;
-      needsApproval: boolean;
-    }) =>
+    mutationFn: ({ orderId, needsApproval }: { orderId: string; needsApproval: boolean }) =>
       updatePurchaseOrder(orderId, {
         status: needsApproval ? "pending_approval" : "sent",
         submitted_at: new Date().toISOString(),
@@ -220,52 +213,57 @@ export function usePurchaseMutations() {
   // RPC `receive_purchase_order_items` dropped: client-side loop -- each
   // received item becomes an update() on the item + createStockMovement of
   // type "in" (no transaction; ADR-006 accepts this risk at the expected volume).
-  const receiveItems = useMutation({
-    mutationFn: async (input: ReceiveItemsInput) => {
-      const [items, orders, products] = await Promise.all([
-        listPurchaseOrderItems(),
-        listPurchaseOrders(),
-        listProducts(),
-      ]);
-      const order = orders.find((o) => o.id === input.orderId);
-      if (!order) throw new Error("Purchase order not found.");
-      const orderItems = items.filter((i) => i.purchase_order_id === input.orderId);
-      const productById = new Map(products.map((p) => [p.id, p]));
+  async function applyReceivedItems(
+    orderId: string,
+    toReceive: { itemId: string; quantityToReceive: number }[],
+  ) {
+    const [items, orders, products] = await Promise.all([
+      listPurchaseOrderItems(),
+      listPurchaseOrders(),
+      listProducts(),
+    ]);
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Purchase order not found.");
+    const orderItems = items.filter((i) => i.purchase_order_id === orderId);
+    const productById = new Map(products.map((p) => [p.id, p]));
 
-      for (const receive of input.items) {
-        const item = orderItems.find((i) => i.id === receive.itemId);
-        if (!item) continue;
-        const newReceived = Number(item.quantity_received) + receive.quantityToReceive;
-        await updatePurchaseOrderItem(item.id, { quantity_received: newReceived });
-        await createStockMovement({
-          product_id: item.product_id,
-          product_name: item.product_name,
-          type: "in",
-          origin: "purchase",
-          quantity: receive.quantityToReceive,
-          reference_id: order.id,
+    for (const receive of toReceive) {
+      const item = orderItems.find((i) => i.id === receive.itemId);
+      if (!item) continue;
+      const newReceived = Number(item.quantity_received) + receive.quantityToReceive;
+      await updatePurchaseOrderItem(item.id, { quantity_received: newReceived });
+      await createStockMovement({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        type: "in",
+        origin: "purchase",
+        quantity: receive.quantityToReceive,
+        reference_id: order.id,
+      });
+      const product = productById.get(item.product_id);
+      if (product) {
+        await updateProduct(product.id, {
+          current_stock: Number(product.current_stock) + receive.quantityToReceive,
         });
-        const product = productById.get(item.product_id);
-        if (product) {
-          await updateProduct(product.id, {
-            current_stock: Number(product.current_stock) + receive.quantityToReceive,
-          });
-        }
       }
+    }
 
-      const allFull = orderItems.every((i) => {
-        const receive = input.items.find((r) => r.itemId === i.id);
-        const received = receive
-          ? Number(i.quantity_received) + receive.quantityToReceive
-          : Number(i.quantity_received);
-        return received >= Number(i.quantity_ordered);
-      });
+    const allFull = orderItems.every((i) => {
+      const receive = toReceive.find((r) => r.itemId === i.id);
+      const received = receive
+        ? Number(i.quantity_received) + receive.quantityToReceive
+        : Number(i.quantity_received);
+      return received >= Number(i.quantity_ordered);
+    });
 
-      await updatePurchaseOrder(order.id, {
-        status: allFull ? "fully_received" : "partially_received",
-        received_at: new Date().toISOString(),
-      });
-    },
+    await updatePurchaseOrder(order.id, {
+      status: allFull ? "fully_received" : "partially_received",
+      received_at: new Date().toISOString(),
+    });
+  }
+
+  const receiveItems = useMutation({
+    mutationFn: (input: ReceiveItemsInput) => applyReceivedItems(input.orderId, input.items),
     onSuccess: () => {
       invalidate();
       qc.invalidateQueries({ queryKey: MOVEMENTS_QUERY_KEY });
@@ -273,41 +271,5 @@ export function usePurchaseMutations() {
     },
   });
 
-  const markDelivered = useMutation({
-    mutationFn: ({
-      orderId,
-      deliveredAt,
-      needsCheck,
-    }: {
-      orderId: string;
-      deliveredAt?: string | null;
-      needsCheck: boolean;
-    }) =>
-      updatePurchaseOrder(orderId, {
-        status: needsCheck ? "delivered_pending_check" : "fully_received",
-        delivered_at: deliveredAt ?? new Date().toISOString(),
-      }),
-    onSuccess: invalidate,
-  });
-
-  const completeCheck = useMutation({
-    mutationFn: async ({
-      orderId,
-    }: {
-      orderId: string;
-      items: { itemId: string; quantity: number }[];
-    }) => {
-      await updatePurchaseOrder(orderId, {
-        status: "fully_received",
-        check_completed_at: new Date().toISOString(),
-      });
-    },
-    onSuccess: () => {
-      invalidate();
-      qc.invalidateQueries({ queryKey: MOVEMENTS_QUERY_KEY });
-      qc.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
-    },
-  });
-
-  return { create, submit, approve, reject, cancel, receiveItems, markDelivered, completeCheck };
+  return { create, submit, approve, reject, cancel, receiveItems };
 }

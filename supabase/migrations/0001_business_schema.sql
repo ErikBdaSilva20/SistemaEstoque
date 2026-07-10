@@ -40,14 +40,7 @@ create trigger touch_stock_destinations_updated_at
 
 create table if not exists purchase_rules (
   id                                   uuid primary key default gen_random_uuid(),
-  min_quotes_required                 int not null default 3,
   approval_min_amount                 numeric(12,2),
-  requires_delivery_check             boolean not null default false,
-  delivery_check_min_amount           numeric(12,2),
-  requires_justification_below_min_quotes boolean not null default true,
-  requires_request_for_order          boolean not null default false,
-  requires_winner_approval            boolean not null default false,
-  approver_roles                      text[] not null default '{admin,manager}',
   active                               boolean not null default true,
   created_at                          timestamptz not null default now(),
   updated_at                          timestamptz not null default now()
@@ -182,122 +175,17 @@ create index if not exists idx_stock_movements_product on stock_movements(produc
 -- Purchasing flow
 -- =========================================================================
 
-create table if not exists purchase_requests (
-  id                    uuid primary key default gen_random_uuid(),
-  owner_id              text not null references "user"(id) on delete cascade,
-  code                  text not null unique,
-  title                 text not null,
-  justification         text,
-  priority              text not null default 'normal' check (priority in ('low','normal','high','urgent')),
-  status                text not null default 'draft'
-    check (status in ('draft','pending_approval','approved','rejected','converted','cancelled')),
-  expected_date         date,
-  approved_by           text,
-  approved_at           timestamptz,
-  rejected_by           text,
-  rejected_at           timestamptz,
-  rejection_reason      text,
-  converted_to_order_id uuid,
-  converted_to_quote_id uuid,
-  submitted_at          timestamptz,
-  notes                 text,
-  created_at            timestamptz not null default now(),
-  updated_at            timestamptz not null default now()
-);
-create index if not exists idx_purchase_requests_owner on purchase_requests(owner_id);
-create trigger touch_purchase_requests_updated_at
-  before update on purchase_requests
-  for each row execute function touch_updated_at();
-
-create table if not exists purchase_request_items (
-  id                        uuid primary key default gen_random_uuid(),
-  owner_id                  text not null references "user"(id) on delete cascade,
-  purchase_request_id       uuid not null references purchase_requests(id) on delete cascade,
-  product_id                uuid not null references products(id) on delete restrict,
-  quantity                  numeric(14,3) not null,
-  estimated_unit_cost       numeric(12,2),
-  notes                     text,
-  created_at                timestamptz not null default now()
-);
-create index if not exists idx_purchase_request_items_owner on purchase_request_items(owner_id);
-create index if not exists idx_purchase_request_items_request on purchase_request_items(purchase_request_id);
-
-create table if not exists quotes (
-  id                    uuid primary key default gen_random_uuid(),
-  owner_id              text not null references "user"(id) on delete cascade,
-  code                  text not null unique,
-  title                 text not null,
-  purchase_request_id   uuid references purchase_requests(id) on delete set null,
-  status                text not null default 'draft'
-    check (status in ('draft','sent','receiving','closed','cancelled','winner_pending_approval')),
-  deadline              timestamptz,
-  sent_at               timestamptz,
-  closed_at             timestamptz,
-  winning_response_id   uuid,
-  converted_to_order_id uuid,
-  notes                 text,
-  created_at            timestamptz not null default now(),
-  updated_at            timestamptz not null default now()
-);
-create index if not exists idx_quotes_owner on quotes(owner_id);
-create trigger touch_quotes_updated_at
-  before update on quotes
-  for each row execute function touch_updated_at();
-
-create table if not exists quote_items (
-  id          uuid primary key default gen_random_uuid(),
-  owner_id    text not null references "user"(id) on delete cascade,
-  quote_id    uuid not null references quotes(id) on delete cascade,
-  product_id  uuid not null references products(id) on delete restrict,
-  quantity    numeric(14,3) not null,
-  notes       text,
-  created_at  timestamptz not null default now()
-);
-create index if not exists idx_quote_items_owner on quote_items(owner_id);
-create index if not exists idx_quote_items_quote on quote_items(quote_id);
-
-create table if not exists quote_suppliers (
-  id              uuid primary key default gen_random_uuid(),
-  owner_id        text not null references "user"(id) on delete cascade,
-  quote_id        uuid not null references quotes(id) on delete cascade,
-  supplier_id     uuid not null references suppliers(id) on delete restrict,
-  sent_at         timestamptz,
-  created_at      timestamptz not null default now()
-);
-create index if not exists idx_quote_suppliers_owner on quote_suppliers(owner_id);
-create index if not exists idx_quote_suppliers_quote on quote_suppliers(quote_id);
-
-create table if not exists quote_responses (
-  id                      uuid primary key default gen_random_uuid(),
-  owner_id                text not null references "user"(id) on delete cascade,
-  quote_id                uuid not null references quotes(id) on delete cascade,
-  supplier_id             uuid not null references suppliers(id) on delete restrict,
-  supplier_name           text not null,
-  items                   jsonb not null default '[]',
-  total_amount            numeric(12,2) not null default 0,
-  delivery_days           int,
-  payment_terms           text,
-  notes                   text,
-  received_at             timestamptz not null default now(),
-  created_at              timestamptz not null default now()
-);
-create index if not exists idx_quote_responses_owner on quote_responses(owner_id);
-create index if not exists idx_quote_responses_quote on quote_responses(quote_id);
-
 create table if not exists purchase_orders (
   id                    uuid primary key default gen_random_uuid(),
   owner_id              text not null references "user"(id) on delete cascade,
   code                  text not null unique,
   supplier_id           uuid not null references suppliers(id) on delete restrict,
   supplier_name         text not null,
-  purchase_request_id   uuid references purchase_requests(id) on delete set null,
   status                text not null default 'draft' check (status in (
-    'draft','sent','pending_approval','approved','rejected','cancelled',
-    'delivered_pending_check','partially_received','fully_received'
+    'draft','sent','pending_approval','rejected','cancelled',
+    'partially_received','fully_received'
   )),
   total_amount          numeric(12,2) not null default 0,
-  quotes_count          int not null default 0,
-  justification         text,
   notes                 text,
   expected_date         date,
   sent_at               timestamptz,
@@ -308,9 +196,6 @@ create table if not exists purchase_orders (
   rejected_at           timestamptz,
   rejection_reason      text,
   cancelled_at          timestamptz,
-  delivered_at          timestamptz,
-  check_completed_by    text,
-  check_completed_at    timestamptz,
   received_at           timestamptz,
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now()
@@ -338,20 +223,6 @@ create index if not exists idx_purchase_order_items_order on purchase_order_item
 create trigger touch_purchase_order_items_updated_at
   before update on purchase_order_items
   for each row execute function touch_updated_at();
-
-create table if not exists purchase_approvals (
-  id                  uuid primary key default gen_random_uuid(),
-  owner_id            text not null references "user"(id) on delete cascade,
-  purchase_order_id   uuid not null references purchase_orders(id) on delete cascade,
-  approver_id         text,
-  decision            text not null default 'pending' check (decision in ('pending','approved','rejected')),
-  comment             text,
-  justification       text,
-  decided_at          timestamptz,
-  created_at          timestamptz not null default now()
-);
-create index if not exists idx_purchase_approvals_owner on purchase_approvals(owner_id);
-create index if not exists idx_purchase_approvals_order on purchase_approvals(purchase_order_id);
 
 -- =========================================================================
 -- Inventory counts

@@ -31,10 +31,6 @@ const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: s
     label: "Aguarda aprovação",
     className: "bg-warning/15 text-warning",
   },
-  approved: {
-    label: "Aprovado",
-    className: "bg-accent-primary/15 text-accent-primary",
-  },
   rejected: {
     label: "Rejeitado",
     className: "bg-destructive/15 text-destructive",
@@ -42,10 +38,6 @@ const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: s
   sent: {
     label: "Enviado",
     className: "bg-accent-primary/15 text-accent-primary",
-  },
-  delivered_pending_check: {
-    label: "Aguarda conferência",
-    className: "bg-warning/15 text-warning",
   },
   partially_received: {
     label: "Parcial",
