@@ -1,0 +1,47 @@
+{
+  "id": "compras-estoque",
+  "name": "Compras & Estoque",
+  "description": "Gestão de compras e controle de estoque: cadastros, movimentações, kardex, fluxo PR → RFQ → PO, contagens e relatórios.",
+  "version": "0.1.0",
+  "engine": "vite-react-gateway",
+  "schemaVersion": 1,
+  "migrations": ["0001_business_schema.sql"],
+  "auth": { "provider": "better-auth", "roles": ["admin", "manager", "rep"] },
+  "screens": [
+    { "id": "dashboard", "route": "/dashboard", "title": "Dashboard", "file": "src/pages/Dashboard" },
+    { "id": "products", "route": "/products", "title": "Produtos", "file": "src/pages/Products" },
+    { "id": "stock", "route": "/stock", "title": "Estoque", "file": "src/pages/Stock" },
+    { "id": "purchases", "route": "/purchases", "title": "Compras", "file": "src/pages/Purchases" },
+    { "id": "counts", "route": "/counts", "title": "Contagem", "file": "src/pages/Counts" },
+    { "id": "reports", "route": "/reports", "title": "Relatórios", "file": "src/pages/Reports" },
+    { "id": "requests", "route": "/requests", "title": "Solicitações", "file": "src/pages/Requests" },
+    { "id": "quotes", "route": "/quotes", "title": "Orçamentos", "file": "src/pages/Quotes" },
+    { "id": "suppliers", "route": "/suppliers", "title": "Fornecedores", "file": "src/pages/Suppliers" }
+  ],
+  "editable": {
+    "allow": [
+      "src/screens/**",
+      "src/pages/**",
+      "src/components/**",
+      "src/hooks/**",
+      "src/lib/data/*.repo.ts",
+      "src/lib/*.ts",
+      "src/app.css",
+      "src/styles.css"
+    ],
+    "protect": [
+      "src/lib/data/client.ts",
+      "src/lib/data/types.gen.ts",
+      "src/lib/data/preview-fixtures.ts",
+      "src/components/registry.tsx",
+      "src/main.tsx",
+      "src/components/ui/**",
+      "src/lib/utils.ts",
+      "vite.config.ts",
+      "components.json",
+      "supabase/migrations/**"
+    ]
+  },
+  "composio": { "toolkits": [] },
+  "envContract": ["VITE_GATEWAY_URL"]
+}

@@ -1,0 +1,14 @@
+# Normalize line endings to LF regardless of OS/core.autocrlf.
+# Without this, Windows checkouts (core.autocrlf=true) rewrite every text
+# file to CRLF, which conflicts with Prettier's "lf" default and breaks
+# `npm run lint` project-wide with thousands of whitespace-only errors.
+* text=auto eol=lf
+
+# Binary assets: never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
