@@ -6,8 +6,8 @@ import { movementSchema } from "@/components/stock/movement-form/useMovementForm
 
 // UUIDs v4 válidos (formato: xxxxxxxx-xxxx-4xxx-[89ab]xxx-xxxxxxxxxxxx)
 const PRODUCT_UUID = "3f5e4c2a-1b2c-4d3e-8f9a-0b1c2d3e4f5a";
-const LOCATION_A   = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
-const LOCATION_B   = "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e";
+const LOCATION_A = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const LOCATION_B = "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e";
 
 /** Helper: retorna um input válido de "saída" com apenas o campo alterado. */
 function baseOut(overrides?: Record<string, unknown>) {

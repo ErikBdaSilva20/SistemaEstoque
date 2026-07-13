@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/command";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import type { StockDestination } from "@/lib/data/stock_destinations.repo";
+import type { DestinationKind } from "@/hooks/useStockDestinations";
 
 interface MovementDestinationFieldProps {
-  destinations: any[];
+  destinations: StockDestination[];
   createDestinationPending: boolean;
-  onCreateDestination: (name: string, kind: string) => Promise<{ id: string }>;
+  onCreateDestination: (name: string, kind: DestinationKind) => Promise<{ id: string }>;
 }
 
 export function MovementDestinationField({
@@ -41,7 +43,7 @@ export function MovementDestinationField({
           (d) => d.name.toLowerCase() === searchTrimmed.toLowerCase(),
         );
 
-        const handleCreate = async (kind: string) => {
+        const handleCreate = async (kind: DestinationKind) => {
           if (!searchTrimmed) return;
           try {
             const created = await onCreateDestination(searchTrimmed, kind);

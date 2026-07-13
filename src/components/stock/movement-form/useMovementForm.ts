@@ -34,16 +34,31 @@ export const movementSchema = z
 export type MovementFormInput = z.input<typeof movementSchema>;
 export type MovementFormValues = z.output<typeof movementSchema>;
 
+export interface MovementFormProduct {
+  id: string;
+  sku: string;
+  name: string;
+  barcode: string | null;
+  current_stock: number;
+  min_stock: number;
+  unit: string;
+  track_batches?: boolean;
+}
+
 interface UseMovementFormOptions {
   /** Pre-fill the product picker when opening from a product detail page. */
   defaultProductId?: string;
   /** Pre-fill the location picker with the default warehouse location. */
   defaultLocationId?: string;
   /** Full product list, used to derive `selectedProduct` reactively. */
-  products: { id: string; name: string; current_stock: number; min_stock: number; unit: string; track_batches?: boolean }[];
+  products: MovementFormProduct[];
 }
 
-export function useMovementForm({ defaultProductId, defaultLocationId, products }: UseMovementFormOptions) {
+export function useMovementForm({
+  defaultProductId,
+  defaultLocationId,
+  products,
+}: UseMovementFormOptions) {
   const form = useForm<MovementFormInput, unknown, MovementFormValues>({
     resolver: zodResolver(movementSchema),
     defaultValues: buildDefaults(defaultProductId, defaultLocationId),

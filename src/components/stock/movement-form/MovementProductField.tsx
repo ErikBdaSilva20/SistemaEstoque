@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/command";
 import { formatNumber } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import type { MovementFormProduct } from "./useMovementForm";
 
 interface MovementProductFieldProps {
-  products: any[];
-  selectedProduct?: any;
+  products: MovementFormProduct[];
+  selectedProduct?: MovementFormProduct;
 }
 
 export function MovementProductField({ products, selectedProduct }: MovementProductFieldProps) {
