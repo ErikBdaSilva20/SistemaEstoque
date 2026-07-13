@@ -21,7 +21,10 @@ import {
 } from "@/components/ui/select";
 import { usePurchaseOrders, type PurchaseOrder } from "@/hooks/usePurchases";
 import { formatBRL, formatDate } from "@/lib/formatters";
-import { PURCHASE_ORDER_STATUS_META, PURCHASE_ORDER_STATUS_ORDER } from "@/lib/purchase-order-status";
+import {
+  PURCHASE_ORDER_STATUS_META,
+  PURCHASE_ORDER_STATUS_ORDER,
+} from "@/lib/purchase-order-status";
 
 export function PurchasesTable() {
   const [statusFilter, setStatusFilter] = useState<string>("all");

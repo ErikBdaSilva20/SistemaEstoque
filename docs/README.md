@@ -330,7 +330,21 @@ revisado.
 
 ### Bloco F — Polimento 🟢
 
-- [x] 016 final · Configurações (Equipe/Locais/Regras de compra/Motivos de movimento)
+- [x] 016 final · Configurações (Equipe/Locais/Regras de compra) — "Motivos de
+      movimento" foi removido do menu de Configurações por decisão do usuário
+      (2026-07-13): o hook/dado (`useMovementReasons`, tabela
+      `movement_reasons`) continua em uso normal no fluxo de Estoque, só a
+      tela de administração (criar/desativar motivo) saiu. Ver
+      `audit/v1-ship-readiness.md` §4.
+- [x] Reskin visual completo (2026-07-13) · paleta trocada de indigo/navy
+      (herdada do template Viver de IA) pra verde/ciano, tipografia (Space
+      Grotesk + Inter + JetBrains Mono), radii/sombras retintados — só
+      `src/styles.css`, zero componente tocado nessa parte. Contrato em
+      `_bmad-output/planning-artifacts/ux-designs/ux-remix-de-compras-e-estoque-2026-07-11/`
+      (`DESIGN.md`/`EXPERIENCE.md`). Sidenav reorganizada (grupos
+      Operação/Gestão/Sistema, Dashboard fixado no topo) e Dashboard
+      reordenado (gráfico logo após o cabeçalho). **Pendente:** `THIRD_PARTY.md`
+      ainda descreve a paleta antiga (indigo/navy) — atualizar.
 - [ ] 017 · Import/Export CSV — import de produtos/fornecedores e export XLSX existem e estão
       ligados nas telas; não verificado: barra de progresso/sumário de erros em lotes grandes
       (~1000 linhas sem travar a UI)
@@ -346,7 +360,15 @@ revisado.
       (rotas, nav, produtos, tela `/expiring`), ver `stories/v1/021-papeis-rep-gerente.md`.
       Validação manual com contas reais `rep`/`admin` ainda pendente (sem credenciais neste ambiente)
 - [ ] **Portão F:** `masi.template.json` pronto, template publicável; screenshots pendentes;
-      `THIRD_PARTY.md` existe, revisão final pendente
+      `THIRD_PARTY.md` existe, revisão final pendente (paleta desatualizada, ver acima).
+      Auditoria de prontidão pra deploy real feita em 2026-07-13:
+      [`audit/v1-ship-readiness.md`](./audit/v1-ship-readiness.md) — bloqueadores atuais:
+      (1) separação rep/admin nunca validada com contas reais contra gateway real (só leitura
+      de código + preview mockado, ver story 021), (2) `?preview=1` e `?gw=`/`?t=` na URL não
+      têm gate de ambiente — confirmar com o hub se ficam inertes no domínio publicado,
+      (3) `DEPLOYMENT.md` e `scripts/smoke.mjs`/`scripts/README.md` descrevem a arquitetura
+      Supabase antiga (pré-remix) e vão falhar/enganar se seguidos como estão — reescrever ou
+      remover antes de publicar, (4) `README.md` de raiz não existe.
 
 ### Gateway Extensions (Onda 2 — fora do v1)
 
@@ -370,6 +392,7 @@ Referência apenas. Não marcar como feito no v1.
 | ADRs (decisões arquiteturais)              | [`architecture/05-decisoes.md`](./architecture/05-decisoes.md)             |
 | O que vai virar lixo / manter / reescrever | [`audit/README.md`](./audit/README.md)                                     |
 | Auditoria por prioridade                   | `audit/P0..P3-*.md`                                                        |
+| Checklist de prontidão pra deploy real (v1)| [`audit/v1-ship-readiness.md`](./audit/v1-ship-readiness.md)               |
 | Auditoria por área do código               | `audit/by-area/*`                                                          |
 | Detalhe de um story do v1                  | `stories/v1/NNN-*.md`                                                      |
 | Como escrever um story novo                | [`stories/_template.md`](./stories/_template.md)                           |
