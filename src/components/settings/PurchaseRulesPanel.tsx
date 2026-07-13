@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Loader2, Save, ShieldCheck } from "lucide-react";
-import { usePurchaseRules, useUpdatePurchaseRules } from "@/hooks/usePurchaseRules";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePurchaseRules, useUpdatePurchaseRules } from "@/hooks/usePurchaseRules";
 import { mapGatewayError } from "@/lib/errors";
+import { Loader2, Save, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function PurchaseRulesPanel() {
   const { data: rules, isLoading } = usePurchaseRules();
@@ -66,7 +66,8 @@ export function PurchaseRulesPanel() {
             className="mt-1"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Pedidos acima desse valor vão pra fila de aprovação em vez de ir direto pro fornecedor.
+            Pedidos acima desse valor vão pra fila de aprovação em vez de serem registrados
+            diretamente no histórico.
           </p>
         </CardContent>
       </Card>

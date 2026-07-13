@@ -61,7 +61,9 @@ export function ExpiringBatchesCard({
                     <div className="text-xs font-medium">
                       {formatNumber(b.quantity ?? 0)} {b.unit}
                     </div>
-                    <div className={`text-[10px] ${expired ? "text-destructive" : "text-warning"}`}>
+                    <div
+                      className={`text-xs font-medium ${expired ? "text-destructive" : "text-primary"}`}
+                    >
                       {expired ? (
                         <>
                           <AlertTriangle className="inline h-3 w-3" /> vencido

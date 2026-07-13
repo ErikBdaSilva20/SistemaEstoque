@@ -66,14 +66,20 @@ export default function AppShell() {
     { to: "/expiring", icon: CalendarClock, label: "Vencidos" },
   ];
 
+  const dashboardNavItems: NavItemConfig[] = canManage
+    ? [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }]
+    : [];
+
   const managementNavItems: NavItemConfig[] = canManage
     ? [
-        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { to: "/purchases", icon: ShoppingCart, label: "Compras" },
         { to: "/reports", icon: BarChart3, label: "Relatórios" },
         { to: "/suppliers", icon: Truck, label: "Fornecedores" },
-        { to: "/settings/team", icon: SettingsIcon, label: "Configurações" },
       ]
+    : [];
+
+  const systemNavItems: NavItemConfig[] = canManage
+    ? [{ to: "/settings/team", icon: SettingsIcon, label: "Configurações" }]
     : [];
 
   const isRouteActive = (to: string) =>
@@ -105,8 +111,20 @@ export default function AppShell() {
           </SidebarHeader>
 
           <SidebarContent className="overflow-y-auto px-2 py-3">
+            {dashboardNavItems.length > 0 && (
+              <SidebarGroup className="pb-0">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {dashboardNavItems.map((item) => (
+                      <NavItem key={item.to} item={item} active={isRouteActive(item.to)} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
             <SidebarGroup>
-              <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+              <SidebarGroupLabel>Operação</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {mainNavItems.map((item) => (
@@ -122,6 +140,19 @@ export default function AppShell() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {managementNavItems.map((item) => (
+                      <NavItem key={item.to} item={item} active={isRouteActive(item.to)} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {systemNavItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Sistema</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {systemNavItems.map((item) => (
                       <NavItem key={item.to} item={item} active={isRouteActive(item.to)} />
                     ))}
                   </SidebarMenu>

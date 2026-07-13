@@ -1,26 +1,3 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import {
-  ArrowDownCircle,
-  ArrowLeft,
-  Ban,
-  Check,
-  PackageCheck,
-  Printer,
-  Send,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,34 +8,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePurchaseOrder, usePurchaseMutations, type PurchaseOrder } from "@/hooks/usePurchases";
-import { usePurchaseRules } from "@/hooks/usePurchaseRules";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
+import { usePurchaseRules } from "@/hooks/usePurchaseRules";
+import { usePurchaseMutations, usePurchaseOrder } from "@/hooks/usePurchases";
 import { listStockMovements } from "@/lib/data/stock_movements.repo";
 import { formatBRL, formatDate, formatDateTime, formatNumber } from "@/lib/formatters";
-import { ReceiveItemsDialog } from "./ReceiveItemsDialog";
+import { toastError, toastSuccess } from "@/lib/toast";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowDownCircle,
+  ArrowLeft,
+  Ban,
+  Check,
+  PackageCheck,
+  Printer,
+  Send,
+  X,
+} from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { PurchaseOrderPrint } from "./PurchaseOrderPrint";
-import { toastSuccess, toastError } from "@/lib/toast";
-
-const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: string }> = {
-  draft: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
-  pending_approval: {
-    label: "Aguardando aprovação",
-    className: "bg-warning/15 text-warning",
-  },
-  rejected: { label: "Rejeitado", className: "bg-destructive/15 text-destructive" },
-  sent: { label: "Enviado", className: "bg-accent-primary/15 text-accent-primary" },
-  partially_received: {
-    label: "Parcialmente recebido",
-    className: "bg-warning/15 text-warning",
-  },
-  fully_received: {
-    label: "Recebido",
-    className: "bg-accent-success/15 text-accent-success",
-  },
-  cancelled: { label: "Cancelado", className: "bg-destructive/15 text-destructive" },
-};
+import { ReceiveItemsDialog } from "./ReceiveItemsDialog";
+import { PURCHASE_ORDER_STATUS_META } from "@/lib/purchase-order-status";
 
 export function PurchaseOrderDetail({ id }: { id: string }) {
   const { data: order, isLoading } = usePurchaseOrder(id);
@@ -95,7 +77,7 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
     );
   }
 
-  const meta = STATUS_META[order.status];
+  const meta = PURCHASE_ORDER_STATUS_META[order.status];
   const canSend = order.status === "draft";
   const canReceive = order.status === "sent" || order.status === "partially_received";
   const canApprove = order.status === "pending_approval" && (isAdmin || isManager);
@@ -112,7 +94,7 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
       {
         onSuccess: () => {
           toastSuccess(
-            needsApproval ? "Pedido enviado pra aprovação." : "Pedido enviado ao fornecedor.",
+            needsApproval ? "Pedido enviado para aprovação." : "Pedido marcado como enviado.",
           );
         },
         onError: (e) => toastError(e),
@@ -170,7 +152,7 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
             <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
               Pedido {order.code}
             </h1>
-            <Badge className={meta.className} variant="secondary">
+            <Badge className={meta.badgeClassName} variant="secondary">
               {meta.label}
             </Badge>
           </div>
@@ -186,7 +168,7 @@ export function PurchaseOrderDetail({ id }: { id: string }) {
           {canSend && (
             <Button onClick={handleSend} disabled={submit.isPending}>
               <Send className="mr-2 h-4 w-4" />
-              Enviar ao fornecedor
+              Marcar como enviado
             </Button>
           )}
           {canApprove && (

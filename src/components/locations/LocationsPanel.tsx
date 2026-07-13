@@ -24,11 +24,13 @@ import { useLocations, useLocationMutations, type Location } from "@/hooks/useLo
 import { LocationFormDialog } from "./LocationFormDialog";
 import { toastSuccess, toastError } from "@/lib/toast";
 
+// Chaves em inglês -- é o que LocationFormDialog.tsx realmente grava em `kind`
+// (schema.type = z.enum(["warehouse","store","vehicle","other"])).
 const TYPE_LABELS: Record<string, string> = {
-  deposito: "Depósito",
-  loja: "Loja",
-  veiculo: "Veículo",
-  outro: "Outro",
+  warehouse: "Depósito",
+  store: "Loja",
+  vehicle: "Veículo",
+  other: "Outro",
 };
 
 export function LocationsPanel() {

@@ -25,7 +25,6 @@ import SettingsIndex from "@/pages/settings/SettingsIndex";
 import SettingsTeam from "@/pages/settings/SettingsTeam";
 import SettingsLocations from "@/pages/settings/SettingsLocations";
 import SettingsPurchaseRules from "@/pages/settings/SettingsPurchaseRules";
-import SettingsMovementReasons from "@/pages/settings/SettingsMovementReasons";
 import NotFound from "@/pages/NotFound";
 import { RoleGate } from "@/components/auth/RoleGate";
 
@@ -129,7 +128,6 @@ export default function App() {
                   <Route path="team" element={<SettingsTeam />} />
                   <Route path="locations" element={<SettingsLocations />} />
                   <Route path="purchase-rules" element={<SettingsPurchaseRules />} />
-                  <Route path="movement-reasons" element={<SettingsMovementReasons />} />
                 </Route>
               </Route>
             </Route>

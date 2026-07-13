@@ -19,6 +19,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { formatBRL, formatNumber, formatDate } from "@/lib/formatters";
 import { ExpiringBatchesCard } from "@/components/dashboard/ExpiringBatchesCard";
 import type { PurchaseOrder } from "@/hooks/usePurchases";
+import { PURCHASE_ORDER_STATUS_META } from "@/lib/purchase-order-status";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -74,29 +75,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="mb-6 space-y-4">
-        <ExpiringBatchesCard />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, tone }) => (
-          <Card key={label} className="rounded-2xl shadow-elevation-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-              <Icon className={`h-4 w-4 ${tone}`} />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <div className="text-2xl font-bold tabular-nums">{value}</div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="mt-6 rounded-2xl shadow-elevation-1">
+      <Card className="mb-6 rounded-2xl shadow-elevation-1">
         <CardHeader>
           <CardTitle className="text-base">Movimentações — últimos 30 dias</CardTitle>
         </CardHeader>
@@ -160,6 +139,28 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <div className="mb-6 space-y-4">
+        <ExpiringBatchesCard />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon, tone }) => (
+          <Card key={label} className="rounded-2xl shadow-elevation-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+              <Icon className={`h-4 w-4 ${tone}`} />
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <div className="text-2xl font-bold tabular-nums">{value}</div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="rounded-2xl shadow-elevation-1">
@@ -263,19 +264,10 @@ export default function Dashboard() {
 }
 
 function StatusPill({ status }: { status: PurchaseOrder["status"] }) {
-  const map: Record<PurchaseOrder["status"], { label: string; cls: string }> = {
-    draft: { label: "Rascunho", cls: "bg-muted text-muted-foreground" },
-    sent: { label: "Enviado", cls: "bg-accent-primary/15 text-accent-primary" },
-    pending_approval: { label: "Pendente aprovação", cls: "bg-warning/15 text-warning" },
-    rejected: { label: "Rejeitado", cls: "bg-destructive/15 text-destructive" },
-    cancelled: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
-    partially_received: { label: "Parcial", cls: "bg-warning/15 text-warning" },
-    fully_received: { label: "Recebido", cls: "bg-accent-success/15 text-accent-success" },
-  };
-  const m = map[status];
+  const meta = PURCHASE_ORDER_STATUS_META[status];
   return (
-    <Badge variant="secondary" className={m.cls}>
-      {m.label}
+    <Badge variant="secondary" className={meta.badgeClassName}>
+      {meta.label}
     </Badge>
   );
 }

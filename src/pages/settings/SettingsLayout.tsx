@@ -7,7 +7,6 @@ const tabs = [
   { to: "/settings/team", label: "Equipe" },
   { to: "/settings/locations", label: "Locais" },
   { to: "/settings/purchase-rules", label: "Regras de compra" },
-  { to: "/settings/movement-reasons", label: "Motivos de movimento" },
 ] as const;
 
 export default function SettingsLayout() {

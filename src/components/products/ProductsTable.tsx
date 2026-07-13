@@ -273,64 +273,69 @@ export function ProductsTable({
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por nome, SKU, código..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Button
-          variant={onlyLowStock ? "default" : "outline"}
-          onClick={() => setOnlyLowStock((v) => !v)}
-        >
-          Só críticos
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (filtered.length === 0) return;
-            downloadXlsx(
-              `produtos-${new Date().toISOString().slice(0, 10)}.xlsx`,
-              filtered.map((p) => ({
-                sku: p.sku,
-                nome: p.name,
-                barcode: p.barcode ?? "",
-                categoria: p.category ?? "",
-                unidade: p.unit,
-                ...(canManage ? { custo: Number(p.cost_price) } : {}),
-                preco: Number(p.sale_price),
-                estoque_atual: Number(p.current_stock),
-                estoque_minimo: Number(p.min_stock),
-                fornecedor: p.supplier_id ? (supplierNameById.get(p.supplier_id) ?? "") : "",
-                ativo: p.active ? "sim" : "não",
-              })),
-              "Produtos",
-            );
-          }}
-          disabled={filtered.length === 0}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Exportar
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setLabelsOpen(true)}
-          disabled={selected.size === 0 && filtered.length === 0}
-        >
-          <Printer className="mr-2 h-4 w-4" />
-          {selected.size > 0 ? `Etiquetas (${selected.size})` : "Etiquetas"}
-        </Button>
-        {canManage && (
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Importar
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-1 flex-wrap items-center gap-3 min-w-[240px]">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por nome, SKU, código..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            variant={onlyLowStock ? "default" : "outline"}
+            onClick={() => setOnlyLowStock((v) => !v)}
+          >
+            Só críticos
           </Button>
-        )}
-        <Button onClick={handleNew}>Novo produto</Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (filtered.length === 0) return;
+              downloadXlsx(
+                `produtos-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                filtered.map((p) => ({
+                  sku: p.sku,
+                  nome: p.name,
+                  barcode: p.barcode ?? "",
+                  categoria: p.category ?? "",
+                  unidade: p.unit,
+                  ...(canManage ? { custo: Number(p.cost_price) } : {}),
+                  preco: Number(p.sale_price),
+                  estoque_atual: Number(p.current_stock),
+                  estoque_minimo: Number(p.min_stock),
+                  fornecedor: p.supplier_id ? (supplierNameById.get(p.supplier_id) ?? "") : "",
+                  ativo: p.active ? "sim" : "não",
+                })),
+                "Produtos",
+              );
+            }}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLabelsOpen(true)}
+            disabled={selected.size === 0 && filtered.length === 0}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            {selected.size > 0 ? `Etiquetas (${selected.size})` : "Etiquetas"}
+          </Button>
+          {canManage && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importar
+            </Button>
+          )}
+          <Button onClick={handleNew}>Novo produto</Button>
+        </div>
       </div>
 
       <DataTable
