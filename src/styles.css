@@ -168,7 +168,7 @@
   --accent-primary: #169657;
   --accent-primary-hover: #137847;
   --accent-primary-light: #49c88c;
-  --accent-warm: #eab308;
+  --accent-warm: #d97706;
   --accent-success: #16a34a;
 
   /* ── Design System Borders ── */
@@ -240,7 +240,7 @@
   --accent-primary: oklch(0.7 0.12 245);
   --accent-primary-hover: oklch(0.75 0.12 245);
   --accent-primary-light: oklch(0.78 0.1 245);
-  --accent-warm: oklch(0.82 0.18 85);
+  --accent-warm: oklch(0.77 0.19 70);
   --accent-success: oklch(0.65 0.17 165);
 
   /* ── Design System Borders (Dark) ── */

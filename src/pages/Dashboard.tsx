@@ -88,12 +88,12 @@ export default function Dashboard() {
                 <AreaChart data={data.chart}>
                   <defs>
                     <linearGradient id="inGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--accent-success))" stopOpacity={0.5} />
-                      <stop offset="95%" stopColor="hsl(var(--accent-success))" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--accent-success)" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="var(--accent-success)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="outGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--accent-warm)" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="var(--accent-warm)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -123,14 +123,16 @@ export default function Dashboard() {
                     type="monotone"
                     dataKey="in"
                     name="Entradas"
-                    stroke="hsl(var(--accent-success))"
+                    stroke="var(--accent-success)"
+                    strokeWidth={2}
                     fill="url(#inGrad)"
                   />
                   <Area
                     type="monotone"
                     dataKey="out"
                     name="Saídas"
-                    stroke="hsl(var(--destructive))"
+                    stroke="var(--accent-warm)"
+                    strokeWidth={2}
                     fill="url(#outGrad)"
                   />
                 </AreaChart>

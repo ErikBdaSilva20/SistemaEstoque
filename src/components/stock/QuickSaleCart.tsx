@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from "react";
-import { PackageSearch, ScanLine, Trash2 } from "lucide-react";
+import { Camera, PackageSearch, ScanLine, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ProductFormDialog } from "@/components/products/ProductFormDialog";
+import { BarcodeScanner } from "@/components/scan/BarcodeScanner";
 import { useProducts, type Product } from "@/hooks/useProducts";
 import { useLocations } from "@/hooks/useLocations";
 import { useMovementMutations } from "@/hooks/useMovements";
@@ -38,6 +40,7 @@ export function QuickSaleCart() {
   const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   const total = useMemo(
@@ -76,6 +79,20 @@ export function QuickSaleCart() {
 
   const handleRetryScan = () => {
     setNotFoundCode(null);
+    focusScanInput();
+  };
+
+  const handleCameraDetected = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    setCameraOpen(false);
+
+    const product = products.find((p) => p.barcode === trimmed || p.sku === trimmed);
+    if (!product) {
+      setNotFoundCode(trimmed);
+      return;
+    }
+    addProductToCart(product);
     focusScanInput();
   };
 
@@ -168,26 +185,46 @@ export function QuickSaleCart() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <ScanLine className="h-5 w-5 shrink-0 text-accent-primary" />
-              <Input
-                ref={scanInputRef}
-                autoFocus
-                value={scanValue}
-                onChange={(e) => setScanValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleScanSubmit();
-                  }
-                }}
-                placeholder="Aponte o leitor aqui ou digite o código e pressione Enter"
-                className="text-lg"
-              />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-1 items-center gap-3">
+                <ScanLine className="h-5 w-5 shrink-0 text-accent-primary" />
+                <Input
+                  ref={scanInputRef}
+                  autoFocus
+                  value={scanValue}
+                  onChange={(e) => setScanValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleScanSubmit();
+                    }
+                  }}
+                  placeholder="Aponte o leitor aqui ou digite o código e pressione Enter"
+                  className="text-lg"
+                />
+              </div>
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => setCameraOpen(true)}
+                className="shrink-0"
+              >
+                <Camera className="mr-2 h-5 w-5" />
+                Escanear com a câmera
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Escanear com a câmera</DialogTitle>
+          </DialogHeader>
+          <BarcodeScanner onDetected={handleCameraDetected} />
+        </DialogContent>
+      </Dialog>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-elevation-1">
         <Table>
