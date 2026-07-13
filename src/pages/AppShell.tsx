@@ -7,12 +7,11 @@ import {
   Package,
   Truck,
   ShoppingCart,
+  ShoppingBag,
   ArrowLeftRight,
   BarChart3,
   ClipboardList,
-  ShieldCheck,
-  FileText,
-  FileCheck,
+  CalendarClock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -60,21 +59,28 @@ export default function AppShell() {
   const navigate = useNavigate();
 
   const mainNavItems: NavItemConfig[] = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/products", icon: Package, label: "Produtos" },
+    { to: "/quick-sale", icon: ShoppingBag, label: "Venda Rápida" },
     { to: "/stock", icon: ArrowLeftRight, label: "Estoque" },
-    { to: "/purchases", icon: ShoppingCart, label: "Compras" },
     { to: "/counts", icon: ClipboardList, label: "Contagem" },
-    { to: "/reports", icon: BarChart3, label: "Relatórios" },
+    { to: "/expiring", icon: CalendarClock, label: "Vencidos" },
   ];
 
-  const managementNavItems: NavItemConfig[] = [
-    { to: "/requests", icon: FileCheck, label: "Solicitações" },
-    ...(canManage ? [{ to: "/quotes", icon: FileText, label: "Orçamentos" }] : []),
-    ...(canManage ? [{ to: "/approvals", icon: ShieldCheck, label: "Aprovações" }] : []),
-    ...(canManage ? [{ to: "/suppliers", icon: Truck, label: "Fornecedores" }] : []),
-    { to: "/settings/team", icon: SettingsIcon, label: "Configurações" },
-  ];
+  const dashboardNavItems: NavItemConfig[] = canManage
+    ? [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }]
+    : [];
+
+  const managementNavItems: NavItemConfig[] = canManage
+    ? [
+        { to: "/purchases", icon: ShoppingCart, label: "Compras" },
+        { to: "/reports", icon: BarChart3, label: "Relatórios" },
+        { to: "/suppliers", icon: Truck, label: "Fornecedores" },
+      ]
+    : [];
+
+  const systemNavItems: NavItemConfig[] = canManage
+    ? [{ to: "/settings/team", icon: SettingsIcon, label: "Configurações" }]
+    : [];
 
   const isRouteActive = (to: string) =>
     location.pathname === to ||
@@ -105,8 +111,20 @@ export default function AppShell() {
           </SidebarHeader>
 
           <SidebarContent className="overflow-y-auto px-2 py-3">
+            {dashboardNavItems.length > 0 && (
+              <SidebarGroup className="pb-0">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {dashboardNavItems.map((item) => (
+                      <NavItem key={item.to} item={item} active={isRouteActive(item.to)} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
             <SidebarGroup>
-              <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+              <SidebarGroupLabel>Operação</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {mainNavItems.map((item) => (
@@ -122,6 +140,19 @@ export default function AppShell() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {managementNavItems.map((item) => (
+                      <NavItem key={item.to} item={item} active={isRouteActive(item.to)} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {systemNavItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Sistema</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {systemNavItems.map((item) => (
                       <NavItem key={item.to} item={item} active={isRouteActive(item.to)} />
                     ))}
                   </SidebarMenu>

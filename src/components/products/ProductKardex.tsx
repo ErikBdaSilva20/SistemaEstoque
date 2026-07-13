@@ -1,5 +1,7 @@
-import { Link } from "react-router-dom";
-import { ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, Download, Wrench } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -8,25 +10,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 import { useKardex, type KardexEntry } from "@/hooks/useKardex";
 import { formatBRL, formatDateTime, formatNumber } from "@/lib/formatters";
 import { downloadXlsx } from "@/lib/import-export";
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, Download, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const TYPE_META = {
-  entrada: { label: "Entrada", icon: ArrowDownCircle, className: "text-accent-success", sign: "+" },
-  saida: { label: "Saída", icon: ArrowUpCircle, className: "text-destructive", sign: "−" },
-  ajuste: { label: "Ajuste", icon: Wrench, className: "text-warning", sign: "±" },
-  transferencia: {
+const TYPE_META: Record<
+  KardexEntry["type"],
+  { label: string; icon: typeof ArrowDownCircle; className: string; sign: string }
+> = {
+  in: { label: "Entrada", icon: ArrowDownCircle, className: "text-accent-success", sign: "+" },
+  out: { label: "Saída", icon: ArrowUpCircle, className: "text-destructive", sign: "−" },
+  adjustment: { label: "Ajuste", icon: Wrench, className: "text-warning", sign: "±" },
+  transfer: {
     label: "Transferência",
     icon: ArrowLeftRight,
     className: "text-accent-primary",
     sign: "⇄",
   },
-} as const;
+};
 
 const ORIGIN_LABELS: Record<KardexEntry["origin"], string> = {
   manual: "Manual",

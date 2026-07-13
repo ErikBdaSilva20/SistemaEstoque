@@ -3,12 +3,9 @@
  * PT-BR adequadas a usuários finais — sem vazar stack traces ou texto
  * interno de erro do banco.
  *
- * Uso:
- *   toast.error(mapGatewayError(e));
- *
- * Também expõe `toastError(e, toast.error)` que loga o erro cru em
- * console + mostra a mensagem mapeada, útil quando se quer preservar
- * o diagnóstico pro dev sem expor ao usuário.
+ * Uso direto: mapGatewayError(e). Pra já disparar o toast, use
+ * `toastError`/`toastSuccess` de `@/lib/toast` em vez de chamar
+ * `toast.error(mapGatewayError(e))` manualmente.
  */
 
 const PG_CODE_MESSAGES: Record<string, string> = {
@@ -92,15 +89,4 @@ export function mapGatewayError(
   }
 
   return fallback;
-}
-
-/**
- * Mapeia pra mensagem amigável E loga o original no console (apenas em dev,
- * pra não poluir produção).
- */
-export function toastError(err: unknown, toast: (msg: string) => void, fallback?: string): void {
-  if (import.meta.env.DEV) {
-    console.error("[toastError]", err);
-  }
-  toast(mapGatewayError(err, fallback));
 }

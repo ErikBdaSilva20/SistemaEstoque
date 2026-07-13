@@ -121,15 +121,28 @@ export function SuppliersImportDialog({ open, onOpenChange }: SuppliersImportDia
   ) => {
     const errors: ImportIssue[] = [];
     let inserted = 0;
+    const CHUNK_SIZE = 50;
 
-    for (let i = 0; i < items.length; i++) {
-      try {
-        await createSupplier(items[i]);
-        inserted++;
-      } catch (error) {
-        errors.push({ row: i + 2, message: (error as Error).message, severity: "error" });
-      }
-      onProgress(i + 1, items.length);
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const chunk = items.slice(i, i + CHUNK_SIZE);
+
+      await Promise.all(
+        chunk.map(async (item, chunkIdx) => {
+          const rowNum = i + chunkIdx + 2;
+          try {
+            await createSupplier(item);
+            inserted++;
+          } catch (error) {
+            errors.push({
+              row: rowNum,
+              message: (error as Error).message,
+              severity: "error",
+            });
+          }
+        }),
+      );
+
+      onProgress(Math.min(i + CHUNK_SIZE, items.length), items.length);
     }
 
     qc.invalidateQueries({ queryKey: SUPPLIERS_QUERY_KEY });

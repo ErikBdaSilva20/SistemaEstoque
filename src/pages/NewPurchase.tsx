@@ -19,7 +19,8 @@ export default function NewPurchase() {
           Novo pedido de compra
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Cadastre os itens e gere um rascunho. O envio ao fornecedor é uma ação separada.
+          Cadastre os itens e gere um rascunho. Marcar como enviado é um passo separado, feito
+          depois de revisar o pedido.
         </p>
       </div>
       <PurchaseOrderForm />

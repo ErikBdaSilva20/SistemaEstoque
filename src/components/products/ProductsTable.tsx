@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import {
   Package,
   MoreHorizontal,
@@ -13,14 +12,8 @@ import {
   Download,
   Printer,
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
+import { filterRows } from "@/components/data/data-table-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts, useProductMutations, type Product } from "@/hooks/useProducts";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { formatBRL, formatNumber } from "@/lib/formatters";
@@ -51,7 +43,7 @@ import { ProductFormDialog } from "./ProductFormDialog";
 import { ProductsImportDialog } from "@/components/import/ProductsImportDialog";
 import { LabelsPrintDialog } from "@/components/labels/LabelsPrintDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { mapGatewayError } from "@/lib/errors";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 export function ProductsTable({
   initialOnlyLowStock = false,
@@ -81,17 +73,15 @@ export function ProductsTable({
     [suppliers],
   );
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return products;
-    const s = search.trim().toLowerCase();
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(s) ||
-        p.sku.toLowerCase().includes(s) ||
-        (p.barcode ?? "").toLowerCase().includes(s) ||
-        (p.category ?? "").toLowerCase().includes(s),
-    );
-  }, [products, search]);
+  const filtered = useMemo(
+    () =>
+      filterRows(
+        products,
+        search,
+        (p) => `${p.name} ${p.sku} ${p.barcode ?? ""} ${p.category ?? ""}`,
+      ),
+    [products, search],
+  );
 
   const handleEdit = (p: Product) => {
     setEditTarget(p);
@@ -107,248 +97,261 @@ export function ProductsTable({
     if (!deleteTarget) return;
     remove.mutate(deleteTarget.id, {
       onSuccess: () => {
-        toast.success("Produto removido.");
+        toastSuccess("Produto removido.");
         setDeleteTarget(null);
       },
       onError: (e) => {
-        toast.error(mapGatewayError(e));
+        toastError(e);
         setDeleteTarget(null);
       },
     });
   };
 
+  const columns: DataTableColumn<Product>[] = [
+    {
+      key: "select",
+      headerClassName: "w-10",
+      header: (
+        <Checkbox
+          aria-label="Selecionar todos"
+          checked={filtered.length > 0 && filtered.every((p) => selected.has(p.id))}
+          onCheckedChange={(v) => setSelected(v ? new Set(filtered.map((p) => p.id)) : new Set())}
+        />
+      ),
+      cell: (p) => (
+        <Checkbox
+          aria-label={`Selecionar ${p.name}`}
+          checked={selected.has(p.id)}
+          onCheckedChange={(v) =>
+            setSelected((prev) => {
+              const next = new Set(prev);
+              if (v) next.add(p.id);
+              else next.delete(p.id);
+              return next;
+            })
+          }
+        />
+      ),
+    },
+    {
+      key: "product",
+      header: "Produto",
+      cell: (p) => (
+        <>
+          <Link
+            to={`/products/${p.id}`}
+            className="font-medium text-text-primary hover:text-accent-primary hover:underline"
+          >
+            {p.name}
+          </Link>
+          {p.barcode && <div className="text-xs text-muted-foreground">{p.barcode}</div>}
+        </>
+      ),
+      sortAccessor: (p) => p.name.toLowerCase(),
+    },
+    {
+      key: "sku",
+      header: "SKU",
+      className: "font-mono text-xs",
+      cell: (p) => p.sku,
+    },
+    {
+      key: "category",
+      header: "Categoria",
+      className: "text-muted-foreground",
+      cell: (p) => p.category ?? "—",
+    },
+    {
+      key: "stock",
+      header: "Estoque",
+      headerClassName: "text-right",
+      className: "text-right tabular-nums",
+      cell: (p) => {
+        const low = Number(p.current_stock) < Number(p.min_stock) && p.active;
+        return (
+          <>
+            <span className={low ? "font-semibold text-destructive" : undefined}>
+              {formatNumber(p.current_stock)}
+            </span>{" "}
+            <span className="text-xs text-muted-foreground">{p.unit}</span>
+          </>
+        );
+      },
+      sortAccessor: (p) => Number(p.current_stock),
+    },
+    {
+      key: "min_stock",
+      header: "Mín.",
+      headerClassName: "text-right",
+      className: "text-right tabular-nums text-muted-foreground",
+      cell: (p) => formatNumber(p.min_stock),
+    },
+    {
+      key: "price",
+      header: "Preço",
+      headerClassName: "text-right",
+      className: "text-right tabular-nums",
+      cell: (p) => formatBRL(p.sale_price),
+      sortAccessor: (p) => Number(p.sale_price),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (p) => {
+        const low = Number(p.current_stock) < Number(p.min_stock) && p.active;
+        return (
+          <div className="flex gap-1">
+            {!p.active && <Badge variant="secondary">Inativo</Badge>}
+            {low && <Badge variant="destructive">Crítico</Badge>}
+            {p.active && !low && (
+              <Badge className="bg-accent-success text-white hover:bg-accent-success/90">OK</Badge>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "",
+      headerClassName: "w-12",
+      cell: (p: Product) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canManage && (
+              <DropdownMenuItem onClick={() => handleEdit(p)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+            )}
+            {p.active ? (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleActive.mutate(
+                    { id: p.id, isActive: false },
+                    { onSuccess: () => toastSuccess("Produto desativado.") },
+                  )
+                }
+              >
+                <PowerOff className="mr-2 h-4 w-4" />
+                Desativar
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleActive.mutate(
+                    { id: p.id, isActive: true },
+                    { onSuccess: () => toastSuccess("Produto reativado.") },
+                  )
+                }
+              >
+                <Power className="mr-2 h-4 w-4" />
+                Reativar
+              </DropdownMenuItem>
+            )}
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteTarget(p)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remover
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por nome, SKU, código..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-1 flex-wrap items-center gap-3 min-w-[240px]">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por nome, SKU, código..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            variant={onlyLowStock ? "default" : "outline"}
+            onClick={() => setOnlyLowStock((v) => !v)}
+          >
+            Só críticos
+          </Button>
         </div>
-        <Button
-          variant={onlyLowStock ? "default" : "outline"}
-          onClick={() => setOnlyLowStock((v) => !v)}
-        >
-          Só críticos
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (filtered.length === 0) return;
-            downloadXlsx(
-              `produtos-${new Date().toISOString().slice(0, 10)}.xlsx`,
-              filtered.map((p) => ({
-                sku: p.sku,
-                nome: p.name,
-                barcode: p.barcode ?? "",
-                categoria: p.category ?? "",
-                unidade: p.unit,
-                custo: Number(p.cost_price),
-                preco: Number(p.sale_price),
-                estoque_atual: Number(p.current_stock),
-                estoque_minimo: Number(p.min_stock),
-                fornecedor: p.supplier_id ? (supplierNameById.get(p.supplier_id) ?? "") : "",
-                ativo: p.active ? "sim" : "não",
-              })),
-              "Produtos",
-            );
-          }}
-          disabled={filtered.length === 0}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Exportar
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setLabelsOpen(true)}
-          disabled={selected.size === 0 && filtered.length === 0}
-        >
-          <Printer className="mr-2 h-4 w-4" />
-          {selected.size > 0 ? `Etiquetas (${selected.size})` : "Etiquetas"}
-        </Button>
-        {canManage && (
-          <>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (filtered.length === 0) return;
+              downloadXlsx(
+                `produtos-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                filtered.map((p) => ({
+                  sku: p.sku,
+                  nome: p.name,
+                  barcode: p.barcode ?? "",
+                  categoria: p.category ?? "",
+                  unidade: p.unit,
+                  ...(canManage ? { custo: Number(p.cost_price) } : {}),
+                  preco: Number(p.sale_price),
+                  estoque_atual: Number(p.current_stock),
+                  estoque_minimo: Number(p.min_stock),
+                  fornecedor: p.supplier_id ? (supplierNameById.get(p.supplier_id) ?? "") : "",
+                  ativo: p.active ? "sim" : "não",
+                })),
+                "Produtos",
+              );
+            }}
+            disabled={filtered.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLabelsOpen(true)}
+            disabled={selected.size === 0 && filtered.length === 0}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            {selected.size > 0 ? `Etiquetas (${selected.size})` : "Etiquetas"}
+          </Button>
+          {canManage && (
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
               Importar
             </Button>
-            <Button onClick={handleNew}>Novo produto</Button>
-          </>
-        )}
+          )}
+          <Button onClick={handleNew}>Novo produto</Button>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-elevation-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10">
-                <Checkbox
-                  aria-label="Selecionar todos"
-                  checked={filtered.length > 0 && filtered.every((p) => selected.has(p.id))}
-                  onCheckedChange={(v) => {
-                    if (v) {
-                      setSelected(new Set(filtered.map((p) => p.id)));
-                    } else {
-                      setSelected(new Set());
-                    }
-                  }}
-                />
-              </TableHead>
-              <TableHead>Produto</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead className="text-right">Estoque</TableHead>
-              <TableHead className="text-right">Mín.</TableHead>
-              <TableHead className="text-right">Preço</TableHead>
-              <TableHead>Status</TableHead>
-              {canManage && <TableHead className="w-12"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={canManage ? 9 : 8}>
-                    <Skeleton className="h-8 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={canManage ? 9 : 8}
-                  className="py-12 text-center text-sm text-muted-foreground"
-                >
-                  <Package className="mx-auto mb-2 h-8 w-8 opacity-40" />
-                  {search || onlyLowStock
-                    ? "Nenhum produto encontrado com esses filtros."
-                    : "Nenhum produto cadastrado. Clique em 'Novo produto' para começar."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((p) => {
-                const low = Number(p.current_stock) < Number(p.min_stock) && p.active;
-                return (
-                  <TableRow key={p.id} data-state={selected.has(p.id) ? "selected" : undefined}>
-                    <TableCell>
-                      <Checkbox
-                        aria-label={`Selecionar ${p.name}`}
-                        checked={selected.has(p.id)}
-                        onCheckedChange={(v) => {
-                          setSelected((prev) => {
-                            const next = new Set(prev);
-                            if (v) next.add(p.id);
-                            else next.delete(p.id);
-                            return next;
-                          });
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        to={`/products/${p.id}`}
-                        className="font-medium text-text-primary hover:text-accent-primary hover:underline"
-                      >
-                        {p.name}
-                      </Link>
-                      {p.barcode && (
-                        <div className="text-xs text-muted-foreground">{p.barcode}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.category ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <span className={low ? "font-semibold text-destructive" : undefined}>
-                        {formatNumber(p.current_stock)}
-                      </span>{" "}
-                      <span className="text-xs text-muted-foreground">{p.unit}</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {formatNumber(p.min_stock)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatBRL(p.sale_price)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {!p.active && <Badge variant="secondary">Inativo</Badge>}
-                        {low && <Badge variant="destructive">Crítico</Badge>}
-                        {p.active && !low && (
-                          <Badge className="bg-accent-success text-white hover:bg-accent-success/90">
-                            OK
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    {canManage && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(p)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            {p.active ? (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  toggleActive.mutate(
-                                    { id: p.id, isActive: false },
-                                    {
-                                      onSuccess: () => toast.success("Produto desativado."),
-                                    },
-                                  )
-                                }
-                              >
-                                <PowerOff className="mr-2 h-4 w-4" />
-                                Desativar
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  toggleActive.mutate(
-                                    { id: p.id, isActive: true },
-                                    {
-                                      onSuccess: () => toast.success("Produto reativado."),
-                                    },
-                                  )
-                                }
-                              >
-                                <Power className="mr-2 h-4 w-4" />
-                                Reativar
-                              </DropdownMenuItem>
-                            )}
-                            {isAdmin && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() => setDeleteTarget(p)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Remover
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={filtered}
+        rowKey={(p) => p.id}
+        isLoading={isLoading}
+        skeletonRows={4}
+        emptyIcon={Package}
+        emptyMessage={
+          search || onlyLowStock
+            ? "Nenhum produto encontrado com esses filtros."
+            : "Nenhum produto cadastrado. Clique em 'Novo produto' para começar."
+        }
+        rowClassName={(p) => (selected.has(p.id) ? "bg-muted" : undefined)}
+      />
 
       <ProductFormDialog open={formOpen} onOpenChange={setFormOpen} product={editTarget} />
 

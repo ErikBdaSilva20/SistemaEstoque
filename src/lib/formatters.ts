@@ -19,7 +19,12 @@ export function formatNumber(
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   try {
-    return new Date(value).toLocaleDateString("pt-BR");
+    // Date-only strings ("YYYY-MM-DD") parse as UTC midnight per the ISO 8601
+    // spec, which shifts a day back in timezones behind UTC (e.g. pt-BR).
+    // Force local-midnight parsing for those; full timestamps pass through.
+    const isDateOnly = value.length <= 10;
+    const d = new Date(isDateOnly ? `${value}T00:00:00` : value);
+    return d.toLocaleDateString("pt-BR");
   } catch {
     return "—";
   }

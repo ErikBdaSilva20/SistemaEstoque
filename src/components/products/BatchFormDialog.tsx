@@ -2,35 +2,15 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FormDialog } from "@/components/forms/FormDialog";
+import { TextField } from "@/components/forms/fields/TextField";
+import { TextareaField } from "@/components/forms/fields/TextareaField";
+import { NumberField } from "@/components/forms/fields/NumberField";
+import { SelectField } from "@/components/forms/fields/SelectField";
+import { DateField } from "@/components/forms/fields/DateField";
 import { useLocations } from "@/hooks/useLocations";
 import { useBatchMutations, type ProductBatch } from "@/hooks/useBatches";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 const schema = z.object({
   batch_code: z.string().trim().min(1, "Código do lote obrigatório").max(60),
@@ -111,169 +91,53 @@ export function BatchFormDialog({ open, onOpenChange, productId, batch, onSaved 
     try {
       if (isEdit && batch) {
         await update.mutateAsync({ id: batch.id, patch: payload });
-        toast.success("Lote atualizado.");
+        toastSuccess("Lote atualizado.");
       } else {
         await create.mutateAsync(payload);
-        toast.success("Lote cadastrado.");
+        toastSuccess("Lote cadastrado.");
       }
       onSaved?.();
       onOpenChange(false);
     } catch (e) {
-      toast.error((e as Error).message);
+      toastError(e);
     }
   };
 
   const busy = create.isPending || update.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar lote" : "Novo lote"}</DialogTitle>
-          <DialogDescription>
-            Lotes permitem rastrear validade (FEFO) e custos por entrada.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="batch_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Código do lote *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="LOT-001" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Local *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((l) => (
-                          <SelectItem key={l.id} value={l.id}>
-                            {l.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="manufacture_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fabricação</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="expiration_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Validade</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade {!isEdit && "(inicial)"}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        {...field}
-                        value={field.value as number | string | undefined}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="unit_cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Custo unitário (R$)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        {...field}
-                        value={field.value as number | string | undefined}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={busy}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={busy}>
-                {busy ? "Salvando..." : isEdit ? "Salvar" : "Criar lote"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={isEdit ? "Editar lote" : "Novo lote"}
+      description="Lotes permitem rastrear validade (FEFO) e custos por entrada."
+      busy={busy}
+      submitLabel={isEdit ? "Salvar" : "Criar lote"}
+    >
+      <div className="grid grid-cols-2 gap-4">
+        <TextField name="batch_code" label="Código do lote *" placeholder="LOT-001" />
+        <SelectField
+          name="location_id"
+          label="Local *"
+          placeholder="Selecione"
+          options={locations.map((l) => ({ value: l.id, label: l.name }))}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <DateField name="manufacture_date" label="Fabricação" />
+        <DateField name="expiration_date" label="Validade" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <NumberField
+          name="quantity"
+          label={`Quantidade ${!isEdit ? "(inicial)" : ""}`}
+          step="0.001"
+        />
+        <NumberField name="unit_cost" label="Custo unitário (R$)" step="0.01" />
+      </div>
+      <TextareaField name="notes" label="Observações" />
+    </FormDialog>
   );
 }

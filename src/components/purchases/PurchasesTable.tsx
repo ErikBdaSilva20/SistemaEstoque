@@ -21,45 +21,10 @@ import {
 } from "@/components/ui/select";
 import { usePurchaseOrders, type PurchaseOrder } from "@/hooks/usePurchases";
 import { formatBRL, formatDate } from "@/lib/formatters";
-
-const STATUS_META: Record<PurchaseOrder["status"], { label: string; className: string }> = {
-  draft: {
-    label: "Rascunho",
-    className: "bg-muted text-muted-foreground",
-  },
-  pending_approval: {
-    label: "Aguarda aprovação",
-    className: "bg-warning/15 text-warning",
-  },
-  approved: {
-    label: "Aprovado",
-    className: "bg-accent-primary/15 text-accent-primary",
-  },
-  rejected: {
-    label: "Rejeitado",
-    className: "bg-destructive/15 text-destructive",
-  },
-  sent: {
-    label: "Enviado",
-    className: "bg-accent-primary/15 text-accent-primary",
-  },
-  delivered_pending_check: {
-    label: "Aguarda conferência",
-    className: "bg-warning/15 text-warning",
-  },
-  partially_received: {
-    label: "Parcial",
-    className: "bg-warning/15 text-warning",
-  },
-  fully_received: {
-    label: "Recebido",
-    className: "bg-accent-success/15 text-accent-success",
-  },
-  cancelled: {
-    label: "Cancelado",
-    className: "bg-destructive/15 text-destructive",
-  },
-};
+import {
+  PURCHASE_ORDER_STATUS_META,
+  PURCHASE_ORDER_STATUS_ORDER,
+} from "@/lib/purchase-order-status";
 
 export function PurchasesTable() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -70,17 +35,16 @@ export function PurchasesTable() {
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[220px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="draft">Rascunho</SelectItem>
-            <SelectItem value="pending_approval">Aguarda aprovação</SelectItem>
-            <SelectItem value="sent">Enviado</SelectItem>
-            <SelectItem value="partially_received">Parcialmente recebido</SelectItem>
-            <SelectItem value="fully_received">Recebido</SelectItem>
-            <SelectItem value="cancelled">Cancelado</SelectItem>
+            {PURCHASE_ORDER_STATUS_ORDER.map((status) => (
+              <SelectItem key={status} value={status}>
+                {PURCHASE_ORDER_STATUS_META[status].label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Button asChild>
@@ -118,7 +82,7 @@ export function PurchasesTable() {
               </TableRow>
             ) : (
               orders.map((o) => {
-                const meta = STATUS_META[o.status];
+                const meta = PURCHASE_ORDER_STATUS_META[o.status];
                 return (
                   <TableRow key={o.id}>
                     <TableCell className="font-mono text-sm font-medium">{o.code}</TableCell>
@@ -137,7 +101,7 @@ export function PurchasesTable() {
                       {formatBRL(Number(o.total_amount))}
                     </TableCell>
                     <TableCell>
-                      <Badge className={meta.className} variant="secondary">
+                      <Badge className={meta.badgeClassName} variant="secondary">
                         {meta.label}
                       </Badge>
                     </TableCell>

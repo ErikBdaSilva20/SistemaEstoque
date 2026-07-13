@@ -148,39 +148,47 @@ export function ProductsImportDialog({ open, onOpenChange }: ProductsImportDialo
   ) => {
     const errors: ImportIssue[] = [];
     let inserted = 0;
+    const CHUNK_SIZE = 50;
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const { initial_stock, ...productData } = item;
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const chunk = items.slice(i, i + CHUNK_SIZE);
 
-      try {
-        const product = await createProduct(productData);
-        inserted++;
-        if (initial_stock > 0) {
+      await Promise.all(
+        chunk.map(async (item, chunkIdx) => {
+          const rowNum = i + chunkIdx + 2;
+          const { initial_stock, ...productData } = item;
+
           try {
-            await createStockMovement({
-              product_id: product.id,
-              product_name: product.name,
-              type: "adjustment",
-              quantity: initial_stock,
-              origin: "manual",
-            });
-          } catch (mErr) {
+            const product = await createProduct(productData);
+            inserted++;
+            if (initial_stock > 0) {
+              try {
+                await createStockMovement({
+                  product_id: product.id,
+                  product_name: product.name,
+                  type: "adjustment",
+                  quantity: initial_stock,
+                  origin: "manual",
+                });
+              } catch (mErr) {
+                errors.push({
+                  row: rowNum,
+                  message: `Produto criado mas falha ao lançar saldo inicial: ${(mErr as Error).message}`,
+                  severity: "warning",
+                });
+              }
+            }
+          } catch (error) {
             errors.push({
-              row: i + 2,
-              message: `Produto criado mas falha ao lançar saldo inicial: ${(mErr as Error).message}`,
-              severity: "warning",
+              row: rowNum,
+              message: (error as Error).message,
+              severity: "error",
             });
           }
-        }
-      } catch (error) {
-        errors.push({
-          row: i + 2,
-          message: (error as Error).message,
-          severity: "error",
-        });
-      }
-      onProgress(i + 1, items.length);
+        }),
+      );
+
+      onProgress(Math.min(i + CHUNK_SIZE, items.length), items.length);
     }
 
     qc.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });

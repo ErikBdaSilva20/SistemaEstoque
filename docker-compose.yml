@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: compras_estoque
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/init/00-auth.sql:/docker-entrypoint-initdb.d/00-auth.sql:ro
+      - ./supabase/migrations/0001_business_schema.sql:/docker-entrypoint-initdb.d/01-business-schema.sql:ro
+
+volumes:
+  db-data:

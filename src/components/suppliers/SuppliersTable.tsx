@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { toast } from "sonner";
 import {
   Truck,
   MoreHorizontal,
@@ -10,14 +9,7 @@ import {
   Upload,
   Download,
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,13 +29,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useSuppliers, useSupplierMutations, type Supplier } from "@/hooks/useSuppliers";
 import { useAuth } from "@/hooks/useAuth";
 import { SupplierFormDialog } from "./SupplierFormDialog";
 import { SuppliersImportDialog } from "@/components/import/SuppliersImportDialog";
 import { downloadXlsx } from "@/lib/import-export";
-import { mapGatewayError } from "@/lib/errors";
+import { toastSuccess, toastError } from "@/lib/toast";
 import { formatCnpj } from "@/lib/cnpj";
 
 export function SuppliersTable() {
@@ -70,15 +61,116 @@ export function SuppliersTable() {
     if (!deleteTarget) return;
     remove.mutate(deleteTarget.id, {
       onSuccess: () => {
-        toast.success("Fornecedor removido.");
+        toastSuccess("Fornecedor removido.");
         setDeleteTarget(null);
       },
       onError: (e) => {
-        toast.error(mapGatewayError(e));
+        toastError(e);
         setDeleteTarget(null);
       },
     });
   };
+
+  const columns: DataTableColumn<Supplier>[] = [
+    {
+      key: "name",
+      header: "Nome",
+      className: "font-medium",
+      cell: (s) => s.name,
+      sortAccessor: (s) => s.name.toLowerCase(),
+    },
+    {
+      key: "cnpj",
+      header: "CNPJ",
+      className: "text-muted-foreground",
+      cell: (s) => (s.cnpj ? formatCnpj(s.cnpj) : "—"),
+    },
+    {
+      key: "contact",
+      header: "Contato",
+      cell: (s) => (
+        <>
+          <div className="text-sm">{s.email ?? "—"}</div>
+          <div className="text-xs text-muted-foreground">{s.phone ?? ""}</div>
+        </>
+      ),
+    },
+    {
+      key: "lead_time",
+      header: "Lead time",
+      headerClassName: "text-right",
+      className: "text-right tabular-nums text-muted-foreground",
+      cell: (s) => `${s.lead_time_days}d`,
+      sortAccessor: (s) => s.lead_time_days,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (s) =>
+        s.active ? (
+          <Badge className="bg-accent-success text-white hover:bg-accent-success/90">Ativo</Badge>
+        ) : (
+          <Badge variant="secondary">Inativo</Badge>
+        ),
+    },
+    {
+      key: "actions",
+      header: "",
+      headerClassName: "w-12",
+      cell: (s) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleEdit(s)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+            {s.active ? (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleActive.mutate(
+                    { id: s.id, isActive: false },
+                    { onSuccess: () => toastSuccess("Fornecedor desativado.") },
+                  )
+                }
+              >
+                <PowerOff className="mr-2 h-4 w-4" />
+                Desativar
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleActive.mutate(
+                    { id: s.id, isActive: true },
+                    { onSuccess: () => toastSuccess("Fornecedor reativado.") },
+                  )
+                }
+              >
+                <Power className="mr-2 h-4 w-4" />
+                Reativar
+              </DropdownMenuItem>
+            )}
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteTarget(s)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remover
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -113,119 +205,18 @@ export function SuppliersTable() {
         <Button onClick={handleNew}>Novo fornecedor</Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-elevation-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>CNPJ</TableHead>
-              <TableHead>Contato</TableHead>
-              <TableHead className="text-right">Lead time</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={6}>
-                    <Skeleton className="h-8 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : suppliers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
-                  <Truck className="mx-auto mb-2 h-8 w-8 opacity-40" />
-                  Nenhum fornecedor cadastrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              suppliers.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {s.cnpj ? formatCnpj(s.cnpj) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{s.email ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">{s.phone ?? ""}</div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {s.lead_time_days}d
-                  </TableCell>
-                  <TableCell>
-                    {s.active ? (
-                      <Badge className="bg-accent-success text-white hover:bg-accent-success/90">
-                        Ativo
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inativo</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(s)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        {s.active ? (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toggleActive.mutate(
-                                { id: s.id, isActive: false },
-                                {
-                                  onSuccess: () => toast.success("Fornecedor desativado."),
-                                },
-                              )
-                            }
-                          >
-                            <PowerOff className="mr-2 h-4 w-4" />
-                            Desativar
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toggleActive.mutate(
-                                { id: s.id, isActive: true },
-                                {
-                                  onSuccess: () => toast.success("Fornecedor reativado."),
-                                },
-                              )
-                            }
-                          >
-                            <Power className="mr-2 h-4 w-4" />
-                            Reativar
-                          </DropdownMenuItem>
-                        )}
-                        {isAdmin && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteTarget(s)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Remover
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={suppliers}
+        rowKey={(s) => s.id}
+        isLoading={isLoading}
+        emptyIcon={Truck}
+        emptyMessage="Nenhum fornecedor cadastrado."
+        search={{
+          placeholder: "Buscar por nome, CNPJ, email...",
+          getSearchText: (s) => `${s.name} ${s.cnpj ?? ""} ${s.email ?? ""} ${s.phone ?? ""}`,
+        }}
+      />
 
       <SupplierFormDialog open={formOpen} onOpenChange={setFormOpen} supplier={editTarget} />
 

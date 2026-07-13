@@ -42,6 +42,16 @@ supabase/.temp/
 # Bmad
 
 _bmad
+_bmad-output
 .claude
 
 Importantdoc.md
+
+# Out-of-scope v1 leftovers from the pre-remix codebase
+.legacy
+.agent
+.claude
+_bmad
+_bmad-output
+.claude
+.docs/*

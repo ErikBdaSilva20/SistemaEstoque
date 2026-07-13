@@ -9,6 +9,7 @@ import Auth from "@/pages/Auth";
 import AppShell from "@/pages/AppShell";
 import Dashboard from "@/pages/Dashboard";
 import Stock from "@/pages/Stock";
+import QuickSale from "@/pages/QuickSale";
 import Reports from "@/pages/Reports";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -16,22 +17,14 @@ import Suppliers from "@/pages/Suppliers";
 import Purchases from "@/pages/Purchases";
 import NewPurchase from "@/pages/NewPurchase";
 import PurchaseDetail from "@/pages/PurchaseDetail";
-import PurchaseAccountabilityPage from "@/pages/PurchaseAccountability";
 import Counts from "@/pages/Counts";
 import CountDetail from "@/pages/CountDetail";
+import Expiring from "@/pages/Expiring";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
 import SettingsIndex from "@/pages/settings/SettingsIndex";
 import SettingsTeam from "@/pages/settings/SettingsTeam";
 import SettingsLocations from "@/pages/settings/SettingsLocations";
 import SettingsPurchaseRules from "@/pages/settings/SettingsPurchaseRules";
-import SettingsMovementReasons from "@/pages/settings/SettingsMovementReasons";
-import Approvals from "@/pages/Approvals";
-import Requests from "@/pages/Requests";
-import NewRequest from "@/pages/NewRequest";
-import RequestDetail from "@/pages/RequestDetail";
-import Quotes from "@/pages/Quotes";
-import NewQuote from "@/pages/NewQuote";
-import QuoteDetail from "@/pages/QuoteDetail";
 import NotFound from "@/pages/NotFound";
 import { RoleGate } from "@/components/auth/RoleGate";
 
@@ -78,16 +71,17 @@ function ProtectedRoute({ allowedRoles }: { allowedRoles?: Array<"admin" | "mana
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/auth?tab=login" replace />;
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/quick-sale" replace />;
   }
 
   return <Outlet />;
 }
 
 function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, isManager } = useAuth();
   if (isLoading) return null;
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/auth?tab=login"} replace />;
+  if (!isAuthenticated) return <Navigate to="/auth?tab=login" replace />;
+  return <Navigate to={isAdmin || isManager ? "/dashboard" : "/quick-sale"} replace />;
 }
 
 export default function App() {
@@ -101,33 +95,24 @@ export default function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/stock" element={<Stock />} />
-                <Route path="/purchases" element={<Purchases />} />
-                <Route path="/purchases/new" element={<NewPurchase />} />
-                <Route path="/purchases/:id" element={<PurchaseDetail />} />
-                <Route
-                  path="/purchases/:id/accountability"
-                  element={<PurchaseAccountabilityPage />}
-                />
+                <Route path="/quick-sale" element={<QuickSale />} />
                 <Route path="/counts" element={<Counts />} />
                 <Route path="/counts/:id" element={<CountDetail />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/requests" element={<Requests />} />
-                <Route path="/requests/new" element={<NewRequest />} />
-                <Route path="/requests/:id" element={<RequestDetail />} />
+                <Route path="/expiring" element={<Expiring />} />
               </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
               <Route element={<AppShell />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/purchases" element={<Purchases />} />
+                <Route path="/purchases/new" element={<NewPurchase />} />
+                <Route path="/purchases/:id" element={<PurchaseDetail />} />
+                <Route path="/reports" element={<Reports />} />
                 <Route path="/suppliers" element={<Suppliers />} />
-                <Route path="/approvals" element={<Approvals />} />
-                <Route path="/quotes" element={<Quotes />} />
-                <Route path="/quotes/new" element={<NewQuote />} />
-                <Route path="/quotes/:id" element={<QuoteDetail />} />
                 <Route
                   path="/settings"
                   element={
@@ -143,7 +128,6 @@ export default function App() {
                   <Route path="team" element={<SettingsTeam />} />
                   <Route path="locations" element={<SettingsLocations />} />
                   <Route path="purchase-rules" element={<SettingsPurchaseRules />} />
-                  <Route path="movement-reasons" element={<SettingsMovementReasons />} />
                 </Route>
               </Route>
             </Route>
