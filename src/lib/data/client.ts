@@ -20,7 +20,6 @@ declare global {
   interface Window {
     __MASI_GW__?: string;
     __MASI_TENANT__?: string;
-    __MASI_PREVIEW__?: boolean;
   }
 }
 
@@ -38,10 +37,6 @@ function readConfig(): GatewayConfig {
   return { url, tenantId };
 }
 
-function isPreview(): boolean {
-  return typeof window !== "undefined" && window.__MASI_PREVIEW__ === true;
-}
-
 export class GatewayError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -52,11 +47,6 @@ export class GatewayError extends Error {
 }
 
 async function api<R>(method: string, path: string, body?: unknown): Promise<R> {
-  if (isPreview()) {
-    const { previewRequest } = await import("./preview-fixtures");
-    return previewRequest<R>(method, path, body);
-  }
-
   const { url, tenantId } = readConfig();
   if (!url) {
     throw new GatewayError(
@@ -109,11 +99,6 @@ export interface AuthSession {
 }
 
 async function authApi<R>(method: string, path: string, body?: unknown): Promise<R> {
-  if (isPreview()) {
-    const { previewAuthRequest } = await import("./preview-fixtures");
-    return previewAuthRequest<R>(path, body);
-  }
-
   const { url, tenantId } = readConfig();
   if (!url) {
     throw new GatewayError("VITE_GATEWAY_URL não configurado.", 0);

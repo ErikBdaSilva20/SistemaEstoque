@@ -28,9 +28,7 @@ frontend.
 
 ## 2. Um `tenant-gateway` rodando e apontando pra esse Neon
 
-Não faz parte deste repo. `dev-gateway/server.mjs` é só a versão mock local
-(auth fake, pra dev contra o Postgres do Docker) — **não serve pra
-produção**. Em produção é uma implementação real de Better-Auth + rotas
+Não faz parte deste repo. É uma implementação real de Better-Auth + rotas
 `/data/:table`, tipicamente o repo `Cerebra-AI/tenant-gateway`
 (`Importantdoc.md` §B2). Ele cria as tabelas do Better-Auth **antes**; só
 depois disso aplique `supabase/migrations/0001_business_schema.sql` no mesmo
@@ -76,14 +74,10 @@ Ver `docs/audit/v1-ship-readiness.md` (checklist vivo). Resumo do que
 bloqueia:
 
 - [ ] Rep vs. admin/manager testado com 2 contas reais contra gateway real.
-- [ ] `?preview=1` (bypass de login pro editor/preview) confirmado inerte no
-      domínio final publicado.
 - [ ] Migration `0001_business_schema.sql` aplicada **depois** das tabelas
       do Better-Auth existirem no Neon.
 - [ ] `VITE_GATEWAY_URL` configurada no host escolhido.
 
-## Testar a interface sem gateway (branch `mockup`)
-
-A branch `mockup` (separada desta) tem login e dados 100% fake, com um
-seletor de papel visível na tela — serve só pra mostrar a interface, não
-valida login real nem permissões reais.
+Esta branch fala **só** com um gateway real — não tem nenhum modo mock/preview
+embutido. Pra só visualizar a interface sem gateway configurado, use a branch
+`mockup` (separada desta, com dados e login 100% fake).
