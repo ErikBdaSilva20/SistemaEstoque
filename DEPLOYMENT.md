@@ -1,11 +1,3 @@
-# Deploy — Compras & Estoque
-
-> Reescrito em 2026-07-13. A versão anterior descrevia uma arquitetura
-> Supabase (projeto dedicado, Edge Functions, RLS, Lovable Cloud) que **não
-> existe mais neste código** — foi descartada numa reescrita anterior (ver
-> `docs/audit/P0-bloqueadores.md`). A arquitetura real, por `Importantdoc.md`
-> §B1–B4, é a descrita abaixo.
-
 Este app é um **SPA estático** (Vite + React). Ele **nunca fala com o banco
 direto** — tudo passa por um `tenant-gateway` (Better-Auth + `/data/:table`),
 que é um **serviço separado**, não parte deste repositório:
@@ -52,8 +44,8 @@ npm run build
 ### Variável de ambiente obrigatória
 
 | Variável           | Valor                                    |
-| ------------------- | ---------------------------------------- |
-| `VITE_GATEWAY_URL`  | URL pública do `tenant-gateway` (item 2) |
+| ------------------ | ---------------------------------------- |
+| `VITE_GATEWAY_URL` | URL pública do `tenant-gateway` (item 2) |
 
 Sem essa variável, `src/lib/data/client.ts` lança `GatewayError` em toda
 chamada.
