@@ -1,9 +1,5 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
 import { Loader2, Lock, Mail, User as UserIcon } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { loginSchema, signupSchema } from "@/lib/validations";
+import { useAuthForms } from "./useAuthForms";
 
 /**
  * AnimatedAuthForm
@@ -18,92 +14,7 @@ import { loginSchema, signupSchema } from "@/lib/validations";
  * Estilizado com tokens semânticos do design system Viver de IA.
  */
 export function AnimatedAuthForm() {
-  const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? undefined;
-  const initialTab = searchParams.get("tab");
-
-  const [isActive, setIsActive] = useState(initialTab === "signup");
-
-  // Login state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginErrors, setLoginErrors] = useState<Record<string, string>>({});
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  // Signup state
-  const [fullName, setFullName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
-  const [signupLoading, setSignupLoading] = useState(false);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginErrors({});
-
-    const parsed = loginSchema.safeParse({
-      email: loginEmail,
-      password: loginPassword,
-    });
-    if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
-      parsed.error.issues.forEach((issue) => {
-        const key = issue.path[0]?.toString();
-        if (key) fieldErrors[key] = issue.message;
-      });
-      setLoginErrors(fieldErrors);
-      return;
-    }
-
-    setLoginLoading(true);
-    const { error } = await signIn(parsed.data.email, parsed.data.password);
-    setLoginLoading(false);
-
-    if (error) {
-      const msg = error.toLowerCase().includes("invalid") ? "Email ou senha incorretos." : error;
-      toast.error(msg);
-      return;
-    }
-
-    toast.success("Login realizado!");
-    navigate(redirectTo ?? "/dashboard", { replace: true });
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignupErrors({});
-
-    const parsed = signupSchema.safeParse({
-      fullName,
-      email: signupEmail,
-      password: signupPassword,
-      confirmPassword,
-    });
-    if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
-      parsed.error.issues.forEach((issue) => {
-        const key = issue.path[0]?.toString();
-        if (key) fieldErrors[key] = issue.message;
-      });
-      setSignupErrors(fieldErrors);
-      return;
-    }
-
-    setSignupLoading(true);
-    const { error } = await signUp(parsed.data.fullName, parsed.data.email, parsed.data.password);
-    setSignupLoading(false);
-
-    if (error) {
-      toast.error(error);
-      return;
-    }
-
-    toast.success("Conta criada com sucesso!");
-    navigate("/dashboard", { replace: true });
-  };
+  const { isActive, setIsActive, login, signup } = useAuthForms();
 
   return (
     <>
@@ -382,7 +293,7 @@ export function AnimatedAuthForm() {
       <div className={`auth-anim-container ${isActive ? "active" : ""}`}>
         {/* LOGIN FORM */}
         <div className="auth-form-box login">
-          <form onSubmit={handleLogin} className="form-container w-full">
+          <form onSubmit={login.submit} className="form-container w-full">
             <h1 className="auth-form-title">Entrar</h1>
             <p className="text-sm text-[color:var(--text-secondary)] mb-2">Acesse sua conta</p>
 
@@ -390,30 +301,30 @@ export function AnimatedAuthForm() {
               <input
                 type="email"
                 placeholder="Email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                disabled={loginLoading}
+                value={login.email}
+                onChange={(e) => login.setEmail(e.target.value)}
+                disabled={login.loading}
                 autoComplete="email"
               />
               <Mail size={18} className="auth-icon" />
-              {loginErrors.email && <p className="auth-error">{loginErrors.email}</p>}
+              {login.errors.email && <p className="auth-error">{login.errors.email}</p>}
             </div>
 
             <div className="auth-input-box">
               <input
                 type="password"
                 placeholder="Senha"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                disabled={loginLoading}
+                value={login.password}
+                onChange={(e) => login.setPassword(e.target.value)}
+                disabled={login.loading}
                 autoComplete="current-password"
               />
               <Lock size={18} className="auth-icon" />
-              {loginErrors.password && <p className="auth-error">{loginErrors.password}</p>}
+              {login.errors.password && <p className="auth-error">{login.errors.password}</p>}
             </div>
 
-            <button type="submit" className="auth-btn" disabled={loginLoading}>
-              {loginLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            <button type="submit" className="auth-btn" disabled={login.loading}>
+              {login.loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Entrar
             </button>
           </form>
@@ -421,7 +332,7 @@ export function AnimatedAuthForm() {
 
         {/* SIGNUP FORM */}
         <div className="auth-form-box register">
-          <form onSubmit={handleSignup} className="form-container w-full">
+          <form onSubmit={signup.submit} className="form-container w-full">
             <h1 className="auth-form-title">Criar conta</h1>
             <p className="text-sm text-[color:var(--text-secondary)] mb-2">
               Cadastre-se para começar
@@ -431,58 +342,58 @@ export function AnimatedAuthForm() {
               <input
                 type="text"
                 placeholder="Nome completo"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                disabled={signupLoading}
+                value={signup.fullName}
+                onChange={(e) => signup.setFullName(e.target.value)}
+                disabled={signup.loading}
                 autoComplete="name"
               />
               <UserIcon size={18} className="auth-icon" />
-              {signupErrors.fullName && <p className="auth-error">{signupErrors.fullName}</p>}
+              {signup.errors.fullName && <p className="auth-error">{signup.errors.fullName}</p>}
             </div>
 
             <div className="auth-input-box">
               <input
                 type="email"
                 placeholder="Email"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
-                disabled={signupLoading}
+                value={signup.email}
+                onChange={(e) => signup.setEmail(e.target.value)}
+                disabled={signup.loading}
                 autoComplete="email"
               />
               <Mail size={18} className="auth-icon" />
-              {signupErrors.email && <p className="auth-error">{signupErrors.email}</p>}
+              {signup.errors.email && <p className="auth-error">{signup.errors.email}</p>}
             </div>
 
             <div className="auth-input-box">
               <input
                 type="password"
                 placeholder="Senha (mín. 6 caracteres)"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-                disabled={signupLoading}
+                value={signup.password}
+                onChange={(e) => signup.setPassword(e.target.value)}
+                disabled={signup.loading}
                 autoComplete="new-password"
               />
               <Lock size={18} className="auth-icon" />
-              {signupErrors.password && <p className="auth-error">{signupErrors.password}</p>}
+              {signup.errors.password && <p className="auth-error">{signup.errors.password}</p>}
             </div>
 
             <div className="auth-input-box">
               <input
                 type="password"
                 placeholder="Confirmar senha"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={signupLoading}
+                value={signup.confirmPassword}
+                onChange={(e) => signup.setConfirmPassword(e.target.value)}
+                disabled={signup.loading}
                 autoComplete="new-password"
               />
               <Lock size={18} className="auth-icon" />
-              {signupErrors.confirmPassword && (
-                <p className="auth-error">{signupErrors.confirmPassword}</p>
+              {signup.errors.confirmPassword && (
+                <p className="auth-error">{signup.errors.confirmPassword}</p>
               )}
             </div>
 
-            <button type="submit" className="auth-btn" disabled={signupLoading}>
-              {signupLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            <button type="submit" className="auth-btn" disabled={signup.loading}>
+              {signup.loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Cadastrar
             </button>
           </form>

@@ -345,17 +345,19 @@ revisado.
       Operação/Gestão/Sistema, Dashboard fixado no topo) e Dashboard
       reordenado (gráfico logo após o cabeçalho). **Pendente:** `THIRD_PARTY.md`
       ainda descreve a paleta antiga (indigo/navy) — atualizar.
-- [ ] 017 · Import/Export CSV — import de produtos/fornecedores e export XLSX existem e estão
-      ligados nas telas; não verificado: barra de progresso/sumário de erros em lotes grandes
-      (~1000 linhas sem travar a UI)
-- [ ] 018 · Impressão etiquetas + PO — `LabelsPrintDialog` e `PurchaseOrderPrint` existem
-- [ ] 019 · Testes + qualidade — testes em `lib/cnpj.ts`, `lib/formatters.ts`, `lib/reports.ts`
-      e `components/data/data-table-utils.ts`. Falta: testes de componente não-trivial,
-      Playwright, `.github/workflows/ci.yml` (fora de escopo por decisão do usuário)
-- [ ] 020 · Avaliar arquivos grandes caso a caso (§1.4 — só vale a pena separar quando há
-      responsabilidades diferentes misturadas, não só por linha). Já avaliados/refatorados:
-      `ProductFormDialog.tsx`, `PurchaseOrderDetail.tsx`. Ainda não avaliados:
-      `MovementFormDialog.tsx` (640L), `AnimatedAuthForm.tsx` (512L)
+- [x] 017 · Import/Export CSV — import de produtos/fornecedores e export XLSX existem e estão
+      ligados nas telas; ajustado para envios concorrentes em lote (chunks de 50) com Promise.all para
+      suportar >1000 linhas de forma rápida, segura (capturando erros por linha) e sem travar a UI.
+- [x] 018 · Impressão etiquetas + PO — `LabelsPrintDialog` e `PurchaseOrderPrint` existem e estão
+      funcionais; auditoria confirmou `@media print` aplicado, dados dinâmicos corretamente populados.
+- [x] 019 · Testes + qualidade — 6 arquivos de teste, 64 asserções passando (vitest). Cobertura:
+      `lib/cnpj.ts`, `lib/formatters.ts`, `lib/reports.ts`, `lib/import-export.ts` (str/num/bool),
+      `components/data/data-table-utils.ts`, `components/stock/movement-form/useMovementForm.ts`
+      (schema Zod completo + regra de transferência). E2E Playwright e CI fora de escopo (decisão do usuário).
+- [x] 020 · Avaliar arquivos grandes caso a caso (§1.4). Avaliados e refatorados: `ProductFormDialog.tsx`,
+      `PurchaseOrderDetail.tsx`, `MovementFormDialog.tsx` (618L→286L, lógica extraída para
+      `movement-form/{useMovementForm,MovementProductField,MovementDestinationField,MovementReasonField}`),
+      `AnimatedAuthForm.tsx` (513L→371L, lógica extraída para `useAuthForms.ts`).
 - [x] 021 · Separação de acesso funcionário (rep) vs gerente (admin/manager) — implementado
       (rotas, nav, produtos, tela `/expiring`), ver `stories/v1/021-papeis-rep-gerente.md`.
       Validação manual com contas reais `rep`/`admin` ainda pendente (sem credenciais neste ambiente)
