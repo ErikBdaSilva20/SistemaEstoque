@@ -53,7 +53,7 @@ export class GatewayError extends Error {
 
 async function api<R>(method: string, path: string, body?: unknown): Promise<R> {
   if (isPreview()) {
-    const { previewRequest } = await import("./preview-fixtures");
+    const { previewRequest } = await import("@mock/preview-fixtures");
     return previewRequest<R>(method, path, body);
   }
 
@@ -110,7 +110,7 @@ export interface AuthSession {
 
 async function authApi<R>(method: string, path: string, body?: unknown): Promise<R> {
   if (isPreview()) {
-    const { previewAuthRequest } = await import("./preview-fixtures");
+    const { previewAuthRequest } = await import("@mock/preview-fixtures");
     return previewAuthRequest<R>(path, body);
   }
 

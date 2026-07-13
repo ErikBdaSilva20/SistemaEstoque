@@ -11,11 +11,12 @@
   <body>
     <div id="root"></div>
     <script>
-      // Debug local: abrir com ?preview=1(&previewRole=rep|manager|admin) ativa o mock de
-      // auth/dados do editor (preview-fixtures.ts) sem precisar de um tenant-gateway real.
-      if (new URLSearchParams(location.search).get("preview") === "1") {
-        window.__MASI_PREVIEW__ = true;
-      }
+      // Branch MOCKUP: preview sempre ligado, sem precisar de ?preview=1 na URL.
+      // Login e dados são 100% fake (mock/preview-fixtures.ts), em memória,
+      // resetam a cada load. Troque de papel pelo seletor visível no canto da
+      // tela, ou por ?previewRole=rep|manager|admin na URL. Tudo relacionado a
+      // isso (este script + mock/) some junto — ver mock/README.md.
+      window.__MASI_PREVIEW__ = true;
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

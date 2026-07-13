@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { MockRoleSwitcher } from "@mock/MockRoleSwitcher";
 import {
   Sidebar,
   SidebarContent,
@@ -198,6 +199,7 @@ export default function AppShell() {
           </main>
         </SidebarInset>
       </div>
+      <MockRoleSwitcher />
     </SidebarProvider>
   );
 }
