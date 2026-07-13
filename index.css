@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+
+  /* ========= Fonts ========= */
+
+  --font-title: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* ========= Background ========= */
+
+  --background: #ffffff;
+  --background-secondary: #f7faf8;
+  --background-tertiary: #eef6f2;
+  --background-hover: #e5f3eb;
+
+  /* ========= Surface ========= */
+
+  --surface: #ffffff;
+  --surface-alt: #f9fbfa;
+  --surface-dark: #f1f7f4;
+
+  /* ========= Borders ========= */
+
+  --border: #dce9e2;
+  --border-hover: #bfd9cb;
+
+  /* ========= Primary ========= */
+
+  --primary-50: #effcf5;
+  --primary-100: #daf7e8;
+  --primary-200: #b7edd2;
+  --primary-300: #83ddb2;
+  --primary-400: #49c88c;
+  --primary-500: #22b36d;
+  --primary-600: #169657;
+  --primary-700: #137847;
+  --primary-800: #115f3a;
+  --primary-900: #0f4a2e;
+
+  --primary: var(--primary-600);
+  --primary-hover: var(--primary-700);
+
+  /* ========= Accent ========= */
+
+  --accent-100: #e8fcff;
+  --accent-200: #c5f7ff;
+  --accent-300: #8beeff;
+  --accent-400: #42ddff;
+  --accent-500: #14c7f4;
+  --accent-600: #0ba4cf;
+
+  /* ========= Status ========= */
+
+  --success: #16a34a;
+  --warning: #eab308;
+  --danger: #dc2626;
+  --info: #0891b2;
+
+  /* ========= Text ========= */
+
+  --text-primary: #18251f;
+  --text-secondary: #53635b;
+  --text-muted: #7a8a83;
+  --text-disabled: #adb8b2;
+  --text-white: #ffffff;
+
+  /* ========= Radius ========= */
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  /* ========= Shadows ========= */
+
+  --shadow-xs: 0 1px 2px rgba(17,95,58,.05);
+
+  --shadow-sm:
+    0 2px 8px rgba(17,95,58,.06);
+
+  --shadow-md:
+    0 10px 30px rgba(17,95,58,.08);
+
+  --shadow-lg:
+    0 18px 50px rgba(17,95,58,.12);
+
+  /* ========= Gradients ========= */
+
+  --gradient-primary:
+    linear-gradient(
+      135deg,
+      #22b36d,
+      #14c7f4
+    );
+
+  --gradient-soft:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #f7faf8
+    );
+
+  --gradient-card:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #f2faf5
+    );
+
+}

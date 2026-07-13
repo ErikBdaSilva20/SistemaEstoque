@@ -10,6 +10,13 @@
 </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Debug local: abrir com ?preview=1(&previewRole=rep|manager|admin) ativa o mock de
+      // auth/dados do editor (preview-fixtures.ts) sem precisar de um tenant-gateway real.
+      if (new URLSearchParams(location.search).get("preview") === "1") {
+        window.__MASI_PREVIEW__ = true;
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
