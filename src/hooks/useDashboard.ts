@@ -68,7 +68,7 @@ export function useDashboard() {
       );
 
       const chartMap = new Map<string, DashboardChartPoint>();
-      for (let i = 29; i >= 0; i--) {
+      for (let i = 179; i >= 0; i--) {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
         d.setDate(d.getDate() - i);

@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import { GatewayError } from "@/lib/data/client";
 
+import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import AppShell from "@/pages/AppShell";
 import Dashboard from "@/pages/Dashboard";
@@ -91,6 +92,7 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
 
             <Route element={<ProtectedRoute />}>
